@@ -145,3 +145,14 @@ TEST(KeyTest, KeyIsSplitCorrectly256) {
 
     EXPECT_EQ(key.getWords(), words_expected);
 }
+
+/*---------------rotword test---------------*/
+
+TEST(KeyTest, RotWordTest) {
+
+    std::array<uint8_t,4> word = {0x00, 0x11, 0x22, 0x33};
+    std::array<uint8_t,4> word_expected = {0x11, 0x22, 0x33, 0x00};
+    Key::RotWord(&word);
+
+    EXPECT_EQ(word, word_expected);
+}

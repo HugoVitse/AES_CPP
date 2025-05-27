@@ -11,18 +11,23 @@ namespace AES_CPP {
 class Key {
 
     public:
-        Key(std::string key);
-        
-        std::vector<uint8_t> getKey();
-        std::vector<std::array<uint8_t,4>> getWords();
-        void splitKey();
+    
+        static const int WORD_SIZE = 4;
+        static const std::array<int, 3 > possiblesLengths;
+        static const std::array<char, 16> hexadecimalCaracters;
+    
         
         static uint8_t hexCharToByte(char c);
         static uint8_t hexPairToByte(char high, char low);
 
-        static const int WORD_SIZE = 4;
-        static const std::array<int, 3 > possiblesLengths;
-        static const std::array<char, 16> hexadecimalCaracters;
+        /*AES Key expansion functions*/
+
+        static void RotWord(std::array<uint8_t, Key::WORD_SIZE>* word);
+        
+        Key(std::string key);
+        std::vector<uint8_t> getKey();
+        std::vector<std::array<uint8_t,4>> getWords();
+        void splitKey();
         
 
 

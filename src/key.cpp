@@ -53,6 +53,14 @@ Key::Key(std::string key) {
     
 }
 
+std::vector<uint8_t> Key::getKey() {
+    return this->key;
+}
+
+std::vector<std::array<uint8_t,4>> Key::getWords() {
+    return this->words;
+}
+
 void Key::splitKey() {
 
     int nbWords = this->size / Key::WORD_SIZE;
@@ -66,14 +74,6 @@ void Key::splitKey() {
 
 }
 
-std::vector<uint8_t> Key::getKey() {
-    return this->key;
-}
-
-std::vector<std::array<uint8_t,4>> Key::getWords() {
-    return this->words;
-}
-
 uint8_t Key::hexCharToByte(char c) {
     if (c >= '0' && c <= '9') return c - '0';
     if (c >= 'a' && c <= 'f') return c - 'a' + 10;
@@ -83,6 +83,10 @@ uint8_t Key::hexCharToByte(char c) {
 
 uint8_t Key::hexPairToByte(char high, char low) {
     return (Key::hexCharToByte(high) << 4) | Key::hexCharToByte(low);
+}
+
+void Key::RotWord(std::array<uint8_t, Key::WORD_SIZE>* word) {
+    std::rotate(word->begin(), word->begin()+1, word->end());
 }
 
 }
