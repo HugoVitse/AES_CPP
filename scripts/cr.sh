@@ -1,2 +1,2 @@
 cmake --build build
-build/projet
+build/RUN

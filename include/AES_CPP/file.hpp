@@ -18,11 +18,12 @@ class File {
         void splitFile();
         void fillBlocks();
 
+        static const int BLOCK_DIMENSION = 4;
         static const int BLOCK_SIZE = 16;
     private:
         std::string filePath;
         int fileSize;
-        std::vector<std::array<uint8_t, File::BLOCK_SIZE>> blocks;
+        std::vector< std::array< std::array< uint8_t, File::BLOCK_DIMENSION >, File::BLOCK_DIMENSION> > blocks;
         bool partialBlock;
 
 };

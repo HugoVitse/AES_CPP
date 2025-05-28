@@ -39,28 +39,50 @@ void File::fillBlocks(){
         throw FileException("Impossible d'ouvrir le fichier.");
     }
 
-    std::array<uint8_t, File::BLOCK_SIZE> block;
+    std::array<uint8_t, File::BLOCK_SIZE> flatBlock;
 
     for(int i = 0; i < this->blocks.size() - 1; i+=1) {
         file.seekg(i*File::BLOCK_SIZE);
-        file.read(reinterpret_cast<char*>(block.data()), File::BLOCK_SIZE);
+        file.read(reinterpret_cast<char*>(flatBlock.data()), File::BLOCK_SIZE);
+
+        std::array<std::array<uint8_t, File::BLOCK_DIMENSION>, File::BLOCK_DIMENSION> block;
+
+        for (int row = 0; row < File::BLOCK_DIMENSION; ++row) {
+            for (int col = 0; col < File::BLOCK_DIMENSION; ++col) {
+                block[col][row] = flatBlock[row * File::BLOCK_DIMENSION + col];
+            }
+        }
         this->blocks[i] = block;
     }
 
     file.seekg( (this->blocks.size()-1) * File::BLOCK_SIZE);
 
     if(!this->partialBlock) {
-        file.read(reinterpret_cast<char*>(block.data()), File::BLOCK_SIZE);
+        file.read(reinterpret_cast<char*>(flatBlock.data()), File::BLOCK_SIZE);
+        std::array<std::array<uint8_t, File::BLOCK_DIMENSION>, File::BLOCK_DIMENSION> block;
+        for (int row = 0; row < File::BLOCK_DIMENSION; ++row) {
+            for (int col = 0; col < File::BLOCK_DIMENSION; ++col) {
+                block[col][row] = flatBlock[row * File::BLOCK_DIMENSION + col];
+            }
+        }
         this->blocks[this->blocks.size()-1] = block;
     }
 
     else {
         int bytesLeft = this->getFileSize()%File::BLOCK_SIZE;
-        file.read(reinterpret_cast<char*>(block.data()), bytesLeft );
-
+        file.read(reinterpret_cast<char*>(flatBlock.data()), bytesLeft );
+        
         for(int i = bytesLeft; i < File::BLOCK_SIZE; i+=1) {
-            block[i] = 0;
+            flatBlock[i] = 0;
         }
+        
+        std::array<std::array<uint8_t, File::BLOCK_DIMENSION>, File::BLOCK_DIMENSION> block;
+        for (int row = 0; row < File::BLOCK_DIMENSION; ++row) {
+            for (int col = 0; col < File::BLOCK_DIMENSION; ++col) {
+                block[col][row] = flatBlock[row * File::BLOCK_DIMENSION + col];
+            }
+        }
+        this->blocks[this->blocks.size()-1] = block;
     }
 }
 
