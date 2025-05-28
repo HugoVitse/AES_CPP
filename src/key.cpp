@@ -159,5 +159,16 @@ void Key::AddRoundKey(std::array< std::array< uint8_t, File::BLOCK_DIMENSION >, 
     }
 }
 
+void Key::SubBytes(std::array< std::array< uint8_t, File::BLOCK_DIMENSION >, File::BLOCK_DIMENSION>* block){
+
+    for(int i = 0; i < File::BLOCK_DIMENSION; i+=1) {
+        for(int j = 0; j < File::BLOCK_DIMENSION; j+=1) {
+            (*block)[i][j] = Key::SBoxSubstitution((*block)[i][j]);
+        }
+    }
+
+}
+
+
 
 }

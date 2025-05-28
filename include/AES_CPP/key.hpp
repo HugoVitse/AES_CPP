@@ -39,6 +39,7 @@ class Key {
         void splitKey();
         void KeyExpansion();
         void AddRoundKey(std::array< std::array< uint8_t, File::BLOCK_DIMENSION >, File::BLOCK_DIMENSION>* block, int round);
+        void SubBytes(std::array< std::array< uint8_t, File::BLOCK_DIMENSION >, File::BLOCK_DIMENSION>* block);
         
 
 

@@ -26,6 +26,7 @@ int main() {
 	}};
 
 	key->AddRoundKey(&test, 0);
+	key->SubBytes(&test);
 	std::cout << std::endl;
 	for(int i=0; i<4; i+=1){
 		for(int j=0; j<4; j+=1){

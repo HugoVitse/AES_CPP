@@ -280,3 +280,30 @@ TEST(KeyTest, AddRoundKeyTest) {
     EXPECT_EQ(test, expectedXored);
 
 }
+
+TEST(KeyTest, SubBytesTest) {
+
+    Key key("9f3c7e1a54b82d6e0c1f4a9b3d6e7c1f");
+    std::array< std::array<uint8_t,4>,4> test = {{
+        {{0x00, 0x00, 0x01, 0x01}}, 
+        {{0x03, 0x03, 0x07, 0x07}}, 
+        {{0x0f, 0x0f, 0x1f, 0x1f}}, 
+        {{0x3f, 0x3f, 0x7f, 0x7f}}  
+    }};
+
+    std::array<std::array<uint8_t, 4>, 4> expectedSubbed =  {{
+        {{0xdb, 0xeb, 0xd2, 0xaf}}, 
+        {{0x5b, 0xea, 0xe5, 0xf9}},
+        {{0x7b, 0xca, 0xfc, 0x5f}},
+        {{0x77, 0xd1, 0x7b, 0xd0}}  
+    }};
+    
+
+    key.splitKey();
+    key.KeyExpansion();
+    key.AddRoundKey(&test, 0);
+    key.SubBytes(&test);
+
+    EXPECT_EQ(test, expectedSubbed);
+
+}
