@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include "AES_CPP/key.hpp"
+#include "AES_CPP/utils.hpp"
 #include "AES_CPP/keyException.hpp"
+#include "AES_CPP/utilsException.hpp"
 
 using namespace AES_CPP;
 
@@ -24,20 +26,20 @@ TEST(KeyTest, InvalidKeyLength) {
 /*---------------format test---------------*/
 
 TEST(KeyTest, InvalidKeyFormat) {
-    EXPECT_THROW(Key("9f3c7e1a54b82d6e0c1f4a9b3d6e7c1q"), KeyException); // ends with a 'q' wich is not hexadicmal caracter
+    EXPECT_THROW(Key("9f3c7e1a54b82d6e0c1f4a9b3d6e7c1q"), UtilException); // ends with a 'q' wich is not hexadicmal caracter
 }
 
 TEST(KeyTest, HexToBytes) {
-    EXPECT_EQ(Key::hexPairToByte('0', '0') , 0x00);      // 0
-    EXPECT_EQ(Key::hexPairToByte('F', 'F') , 0xFF);      // 255
-    EXPECT_EQ(Key::hexPairToByte('a', '0') , 0xA0);      // minuscule high nibble
-    EXPECT_EQ(Key::hexPairToByte('0', 'b') , 0x0B);      // minuscule low nibble
-    EXPECT_EQ(Key::hexPairToByte('C', '4') , 0xC4);      // majuscules et chiffres
-    EXPECT_EQ(Key::hexPairToByte('9', 'f') , 0x9F);      // mixte chiffre + lettre min
-    EXPECT_EQ(Key::hexPairToByte('d', 'E') , 0xDE);      // mixte minuscule + majuscule
-    EXPECT_EQ(Key::hexPairToByte('7', '7') , 0x77);      // double chiffre identique
-    EXPECT_EQ(Key::hexPairToByte('A', 'a') , 0xAA);      // mixte case haute/basse
-    EXPECT_EQ(Key::hexPairToByte('5', 'c') , 0x5C);      // cas courant mi-haut
+    EXPECT_EQ(Utils::hexPairToByte('0', '0') , 0x00);      // 0
+    EXPECT_EQ(Utils::hexPairToByte('F', 'F') , 0xFF);      // 255
+    EXPECT_EQ(Utils::hexPairToByte('a', '0') , 0xA0);      // minuscule high nibble
+    EXPECT_EQ(Utils::hexPairToByte('0', 'b') , 0x0B);      // minuscule low nibble
+    EXPECT_EQ(Utils::hexPairToByte('C', '4') , 0xC4);      // majuscules et chiffres
+    EXPECT_EQ(Utils::hexPairToByte('9', 'f') , 0x9F);      // mixte chiffre + lettre min
+    EXPECT_EQ(Utils::hexPairToByte('d', 'E') , 0xDE);      // mixte minuscule + majuscule
+    EXPECT_EQ(Utils::hexPairToByte('7', '7') , 0x77);      // double chiffre identique
+    EXPECT_EQ(Utils::hexPairToByte('A', 'a') , 0xAA);      // mixte case haute/basse
+    EXPECT_EQ(Utils::hexPairToByte('5', 'c') , 0x5C);      // cas courant mi-haut
 }
 
 TEST(KeyTest, HexKeyIsParsedCorrectly128) {
@@ -165,7 +167,7 @@ TEST(KeyTest, SBoxSubstitutionTest) {
     std::array<uint8_t,10> expectedSubstitutions = {0x75, 0x3A, 0x10, 0xF8, 0xCB, 0x30, 0x48, 0xAE, 0xA2, 0x60};
 
     for(int i = 0; i < bytesToTest.size(); i+=1) {
-        EXPECT_EQ(Key::SBoxSubstitution(bytesToTest[i]), expectedSubstitutions[i]);
+        EXPECT_EQ(Utils::SBoxSubstitution(bytesToTest[i]), expectedSubstitutions[i]);
     }
 
 }
@@ -202,7 +204,7 @@ TEST(KeyTest, ExpansionTest128) {
     key.splitKey();
     key.KeyExpansion();
 
-    EXPECT_EQ(key.getRoundKeysWords(), expectedKeys);
+    EXPECT_EQ(*key.getRoundKeysWords(), expectedKeys);
 
 }
 
@@ -226,7 +228,7 @@ TEST(KeyTest, ExpansionTest192) {
     key.splitKey();
     key.KeyExpansion();
 
-    EXPECT_EQ(key.getRoundKeysWords(), expectedKeys);
+    EXPECT_EQ(*key.getRoundKeysWords(), expectedKeys);
 
 }
 
@@ -251,59 +253,6 @@ TEST(KeyTest, ExpansionTest256) {
     key.splitKey();
     key.KeyExpansion();
 
-    EXPECT_EQ(key.getRoundKeysWords(), expectedKeys);
-
-}
-
-TEST(KeyTest, AddRoundKeyTest) {
-
-    Key key("9f3c7e1a54b82d6e0c1f4a9b3d6e7c1f");
-    std::array< std::array<uint8_t,4>,4> test = {{
-        {{0x00, 0x00, 0x01, 0x01}}, 
-        {{0x03, 0x03, 0x07, 0x07}}, 
-        {{0x0f, 0x0f, 0x1f, 0x1f}}, 
-        {{0x3f, 0x3f, 0x7f, 0x7f}}  
-    }};
-
-    std::array<std::array<uint8_t, 4>, 4> expectedXored = {{
-        {{0x9f, 0x3c, 0x7f, 0x1b}}, 
-        {{0x57, 0xbb, 0x2a, 0x69}}, 
-        {{0x03, 0x10, 0x55, 0x84}}, 
-        {{0x02, 0x51, 0x03, 0x60}}  
-    }};
-    
-
-    key.splitKey();
-    key.KeyExpansion();
-    key.AddRoundKey(&test, 0);
-
-    EXPECT_EQ(test, expectedXored);
-
-}
-
-TEST(KeyTest, SubBytesTest) {
-
-    Key key("9f3c7e1a54b82d6e0c1f4a9b3d6e7c1f");
-    std::array< std::array<uint8_t,4>,4> test = {{
-        {{0x00, 0x00, 0x01, 0x01}}, 
-        {{0x03, 0x03, 0x07, 0x07}}, 
-        {{0x0f, 0x0f, 0x1f, 0x1f}}, 
-        {{0x3f, 0x3f, 0x7f, 0x7f}}  
-    }};
-
-    std::array<std::array<uint8_t, 4>, 4> expectedSubbed =  {{
-        {{0xdb, 0xeb, 0xd2, 0xaf}}, 
-        {{0x5b, 0xea, 0xe5, 0xf9}},
-        {{0x7b, 0xca, 0xfc, 0x5f}},
-        {{0x77, 0xd1, 0x7b, 0xd0}}  
-    }};
-    
-
-    key.splitKey();
-    key.KeyExpansion();
-    key.AddRoundKey(&test, 0);
-    key.SubBytes(&test);
-
-    EXPECT_EQ(test, expectedSubbed);
+    EXPECT_EQ(*key.getRoundKeysWords(), expectedKeys);
 
 }
