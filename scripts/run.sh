@@ -1,1 +1,1 @@
-./build/RUN
+./build/RUN "$@"

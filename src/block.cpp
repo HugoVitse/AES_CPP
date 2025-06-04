@@ -62,6 +62,43 @@ void Block::MixColumns() {
     }
 }
 
+
+void Block::inverseSubBytes(){
+
+    for(int i = 0; i < Block::BLOCK_DIMENSION; i+=1) {
+        for(int j = 0; j < Block::BLOCK_DIMENSION; j+=1) {
+            (*this->getBlock())[i][j] = Utils::inverseSBoxSubstitution((*this->getBlock())[i][j]);
+        }
+    }
+
+}
+
+void Block::inverseShitRows(){
+
+    for(int i = 1; i < Block::BLOCK_DIMENSION; i+=1) {
+        for(int k = 0; k < i; k+=1){
+            uint8_t tmp = (*this->getBlock())[Block::BLOCK_DIMENSION-1][i];
+            for(int j = Block::BLOCK_DIMENSION - 1; j >= 0 ; j-=1) {
+                (*this->getBlock())[j][i] = (*this->getBlock())[j-1][i];
+            }
+            (*this->getBlock())[0][i] = tmp;
+        }
+    }
+}
+
+void Block::inverseMixColumns() {
+    for(int i = 0; i < Block::BLOCK_DIMENSION; i+=1){
+        std::array<uint8_t, Block::BLOCK_DIMENSION> tmp = this->block[i];
+        for(int j = 0; j < Block::BLOCK_DIMENSION; j+=1){           
+            this->block[i][j] = Utils::MatrixMultiplication(j, tmp, true);
+        }
+    }
+}
+
+void Block::initialRound(){
+    this->AddRoundKey(0);
+}
+
 void Block::coreRound(int round){
     this->SubBytes();
     this->ShitRows();
@@ -69,14 +106,28 @@ void Block::coreRound(int round){
     this->AddRoundKey(round);
 }
 
-void Block::initialRound(){
-    this->AddRoundKey(0);
-}
 
 void Block::finalRound(){
     this->SubBytes();
     this->ShitRows();
     this->AddRoundKey(this->key->getNbRounds());
+}
+
+void Block::inverseInitialRound(){
+    this->AddRoundKey(this->key->getNbRounds());
+}
+
+void Block::inverseCoreRound(int round){
+    this->inverseShitRows();
+    this->inverseSubBytes();
+    this->AddRoundKey(this->key->getNbRounds() - round);
+    this->inverseMixColumns();
+}
+
+void Block::inverseFinalRound(){
+    this->inverseShitRows();
+    this->inverseSubBytes();
+    this->AddRoundKey(0);
 }
 
 void Block::encode() {
@@ -88,6 +139,14 @@ void Block::encode() {
 
 }
 
+void Block::decode() {
+    this->inverseInitialRound();
+    for(int i=1; i < this->key->getNbRounds(); i+=1){
+        this->inverseCoreRound(i);
+    }
+    this->inverseFinalRound();
+
+}
 
 
 } 

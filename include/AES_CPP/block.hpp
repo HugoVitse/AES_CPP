@@ -22,11 +22,22 @@ class Block {
         void ShitRows();
         void MixColumns();
 
+        void inverseSubBytes();
+        void inverseShitRows();
+        void inverseMixColumns();
+
         void initialRound();
         void coreRound(int round);
         void finalRound();
 
+        void inverseInitialRound();
+        void inverseCoreRound(int round);
+        void inverseFinalRound();
+
+
         void encode();
+        void decode();
+
 
     private:
 
