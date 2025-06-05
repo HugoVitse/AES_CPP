@@ -151,7 +151,22 @@ void Utils::PKcs7(std::array<uint8_t, Block::BLOCK_SIZE>* flatBlock, int bytesLe
     for(int i = bytesLeft; i < Block::BLOCK_SIZE; i+=1) {
         (*flatBlock)[i] = static_cast<u_int8_t> (Block::BLOCK_SIZE - bytesLeft);
     }
+    
+}
 
+void Utils::showProgressBar(int progress, int total) {
+    const int barWidth = 50;
+    float ratio = static_cast<float>(progress) / total;
+    int pos = static_cast<int>(barWidth * ratio);
+
+    std::cout << "[";
+    for (int i = 0; i < barWidth; ++i) {
+        if (i < pos) std::cout << "=";
+        else if (i == pos) std::cout << ">";
+        else std::cout << " ";
+    }
+    std::cout << "] " << int(ratio * 100.0) << " %\r";
+    std::cout.flush();
 }
 
 ChainingMethod Utils::parseChaining(const std::string& str) {
@@ -177,6 +192,7 @@ void validate(boost::any& v, const std::vector<std::string>& values, AES_CPP::Pa
     const std::string& s = po::validators::get_single_string(values);
     v = AES_CPP::parsePadding(s);
 }
+
 
 void Utils::handleInput(int argc, char* argv[]){
 

@@ -45,6 +45,8 @@ class Utils {
         static void validate(boost::any& v, const std::vector<std::string>& values, AES_CPP::ChainingMethod*, int);
         static void handleInput(int argc, char* argv[]);
 
+        static void showProgressBar(int progress, int total);
+
         
 
 

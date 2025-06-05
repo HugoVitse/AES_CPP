@@ -17,7 +17,7 @@ class File {
         File(const std::string& filePath);
         std::string getFilePath();
         bool fileExists();
-        int getFileSize();
+        long getFileSize();
         std::vector<Block>* getBlocks();
         void splitFile(Padding* padding);
         void fillBlocks(Key* key, int flow);
@@ -38,14 +38,14 @@ class File {
         void decodeBlocksCBC(IV iv);
 
 
-        void writeBlocks(int flow, int fin = Block::BLOCK_DIMENSION);
+        void writeBlocks(int flow, int fin = Block::BLOCK_SIZE);
         void encode(Key* key, ChainingMethod Method, IV* iv=nullptr, Padding* padding=nullptr);
         void decode(Key* key, ChainingMethod Method, IV* iv=nullptr);
 
 
     private:
         std::string filePath;
-        int fileSize;
+        long fileSize;
         std::vector<Block> blocks;
         bool partialBlock;
         int nbFlows;

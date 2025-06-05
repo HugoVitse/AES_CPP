@@ -1,6 +1,8 @@
 #include "AES_CPP/file.hpp"
 #include "AES_CPP/fileException.hpp"
 #include <thread>
+#include <vector>
+#include <future>
 
 namespace AES_CPP {
 
@@ -18,7 +20,7 @@ std::string File::getFilePath() {
     return this->filePath;
 }
 
-int File::getFileSize() {
+long File::getFileSize() {
     return this->fileSize;
 }
 
@@ -54,6 +56,7 @@ void File::fillBlocks(Key* key, int flow){
         file.seekg(flow*File::FILE_SIZE_MAX + i*Block::BLOCK_SIZE);
         file.read(reinterpret_cast<char*>(flatBlock.data()), Block::BLOCK_SIZE);
 
+         
         std::array<std::array<uint8_t, Block::BLOCK_DIMENSION>, Block::BLOCK_DIMENSION> block;
 
         for (int col = 0; col < Block::BLOCK_DIMENSION; ++col) {
@@ -154,22 +157,24 @@ void File::encodeBloc(Block* bloc) {
 
 void File::encodeBlocksECB(){
 
-    auto blocks = this->getBlocks();  
-    std::vector<std::thread> threads;
+    auto blocks = this->getBlocks();
+    size_t num_threads = std::thread::hardware_concurrency();
+    size_t total_blocks = blocks->size();
 
-    for (size_t i = 0; i < blocks->size(); ++i) {
-        threads.emplace_back(File::encodeBloc, &(*blocks)[i]);
-    }
-
-    for (auto& t : threads) {
-        t.join();
+    for (size_t i = 0; i < total_blocks; i += num_threads) {
+        std::vector<std::thread> threads;
+        for (size_t j = 0; j < num_threads && i + j < total_blocks; ++j) {
+            threads.emplace_back(File::encodeBloc, &(*blocks)[i + j]);
+        }
+        for (auto& t : threads) {
+            t.join();
+        }
     }
 
 }
 
 //deprecated por test purposes only
 void File::deprecatedEncodeBlocksECB(){
-    std::cout << "ok 1" << std::endl; 
     for(int i=0; i < this->getBlocks()->size(); i+=1){    
         (*this->getBlocks())[i].encode();
     }
@@ -217,17 +222,22 @@ void File::writeBlocks(int flow, int fin){
 
     }
 
+
+
     file.seekp(flow * File::FILE_SIZE_MAX);
 
-    int end = Block::BLOCK_DIMENSION;
+
+    int end = Block::BLOCK_SIZE;
 
     for(int k = 0; k < this->blocks.size(); k+=1) {
 
         if(k == this->blocks.size() - 1 ) {
             end = fin;
         }
+        
 
         Block block = (*this->getBlocks())[k];
+
 
         for(int i = 0; i < end ; i+=1){
             file.put(static_cast<char>(  (*block.getBlock())[i/Block::BLOCK_DIMENSION][i%Block::BLOCK_DIMENSION]  ));
@@ -244,7 +254,10 @@ void File::encode(Key* key, ChainingMethod Method, IV* iv, Padding* padding) {
     key->splitKey();
 	key->KeyExpansion();
 	this->splitFile(padding);
+
     for(int i = 0; i < this->nbFlows; i+=1){
+        Utils::showProgressBar(i, this->nbFlows-1);
+
         if(i == this->nbFlows - 1) {
             this->blocks.resize(this->sizeLastFlow);
             this->fillBlocks(key, i);
@@ -253,7 +266,6 @@ void File::encode(Key* key, ChainingMethod Method, IV* iv, Padding* padding) {
         else {
             this->fillBlocks(key, i);
         }
-        std::cout << "nb blocks : " << this->blocks.size() << std::endl;
         
         if(Method == ChainingMethod::CBC) {
             iv->splitIV();
@@ -261,7 +273,7 @@ void File::encode(Key* key, ChainingMethod Method, IV* iv, Padding* padding) {
         }
         else this->deprecatedEncodeBlocksECB();
         
-        this->writeBlocks(i); //34134 last good is 06d1b78cf67e7fc7fce2
+        this->writeBlocks(i); //85341 first good is 
 
     }
 }
@@ -272,8 +284,9 @@ void File::decode(Key* key, ChainingMethod Method, IV* iv) {
 	key->KeyExpansion();
 	this->splitFile(new Padding(Padding::None));
     for(int i = 0; i < this->nbFlows; i+=1){
-        std::cout << "i : " << i << " / " << this->nbFlows << " %\r";
-        std::cout.flush();
+
+        Utils::showProgressBar(i, this->nbFlows-1);
+
 
         if(i == this->nbFlows - 1) {
             this->blocks.resize(this->sizeLastFlow);
@@ -288,9 +301,13 @@ void File::decode(Key* key, ChainingMethod Method, IV* iv) {
             this->decodeBlocksCBC(*iv);
         }
         else this->decodeBlocksECB();
-                    std::cout << "ok " << std::endl; 
+        if(i == this->nbFlows - 1) {
+            int dePad = this->dePad();
+            this->writeBlocks(i, dePad );
+            std::filesystem::resize_file(this->getFilePath(), (this->getFileSize() - (Block::BLOCK_SIZE - dePad))  );
 
-        this->writeBlocks(i, this->dePad());
+        }
+        else this->writeBlocks(i);
 
     }
 
