@@ -26,3 +26,18 @@ cmake ..
 cd ..
 cmake --build build
 ```
+
+## Usage
+
+```bash
+./AES_CPP --file <filepath> (mandatory)
+          --key <key> (mandatory)
+          --iv <iv>
+          --chaining <CBC|ECB>
+          --padding <PKCS7|ZERO>
+          --output <output filepath>
+          --decode
+          --encode
+
+```
+
