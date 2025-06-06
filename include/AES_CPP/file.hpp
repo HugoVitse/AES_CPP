@@ -9,13 +9,18 @@
 #include <array>
 #include <fstream>
 #include <iostream>
+#include <thread>
+#include <vector>
+#include <future>
 
 namespace AES_CPP {
 
 class File {
     public:
-        File(const std::string& filePath);
+        File(const std::string& filePath, const std::string& outputFilePath);
         std::string getFilePath();
+        std::string getOutputFilePath();
+
         bool fileExists();
         long getFileSize();
         std::vector<Block>* getBlocks();
@@ -45,6 +50,8 @@ class File {
 
     private:
         std::string filePath;
+        std::string outputFilePath;
+
         long fileSize;
         std::vector<Block> blocks;
         bool partialBlock;

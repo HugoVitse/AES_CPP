@@ -1,13 +1,10 @@
 #include "AES_CPP/file.hpp"
 #include "AES_CPP/fileException.hpp"
-#include <thread>
-#include <vector>
-#include <future>
 
 namespace AES_CPP {
 
     
-File::File(const std::string& filePath) : filePath(filePath) {
+File::File(const std::string& filePath, const std::string& outputFilePath) : filePath(filePath), outputFilePath(outputFilePath) {
     if(!this->fileExists()) {
         throw FileException("Le fichier n'existe pas");
     }
@@ -19,6 +16,11 @@ File::File(const std::string& filePath) : filePath(filePath) {
 std::string File::getFilePath() {
     return this->filePath;
 }
+
+std::string File::getOutputFilePath() {
+    return this->outputFilePath;
+}
+
 
 long File::getFileSize() {
     return this->fileSize;
@@ -214,7 +216,7 @@ void File::decodeBlocksCBC(IV iv) {
 }
 
 void File::writeBlocks(int flow, int fin){
-    std::fstream file(this->getFilePath(), std::ios::in | std::ios::out | std::ios::binary);
+    std::fstream file(this->getOutputFilePath(), std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc);
 
 
     if (!file.is_open()) {

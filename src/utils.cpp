@@ -197,6 +197,8 @@ void validate(boost::any& v, const std::vector<std::string>& values, AES_CPP::Pa
 void Utils::handleInput(int argc, char* argv[]){
 
     std::string filename;
+    std::string outputFilename;
+
     std::string key;
     std::string iv;
     AES_CPP::ChainingMethod chainingMethod;
@@ -215,7 +217,9 @@ void Utils::handleInput(int argc, char* argv[]){
         ("chaining,c", po::value<AES_CPP::ChainingMethod>(&chainingMethod), "Méthode de chaînage (ECB, CBC)")
         ("padding,p", po::value<AES_CPP::Padding>(&padding), "Type de padding (ZERO, PKCS7)")
         ("decode,d", po::bool_switch(&decode), "Mode déchiffrement")
-        ("encode,e", po::bool_switch(&encode), "Mode chiffrement");
+        ("encode,e", po::bool_switch(&encode), "Mode chiffrement")
+        ("output,o",po::value<std::string>(&outputFilename), "Fichier de sortie");
+
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -268,7 +272,14 @@ void Utils::handleInput(int argc, char* argv[]){
         padding = Padding::PKcs7;
     }
 
-    File* _file = new File(filename);
+    if (vm.count("output")) {
+        std::cout << "Fichier de sortie : " << outputFilename << std::endl;
+    }
+    else {
+        outputFilename = filename;
+    }
+
+    File* _file = new File(filename, outputFilename);
     Key* _key = new AES_CPP::Key(key);
     IV* _iv = nullptr;
 
