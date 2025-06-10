@@ -5,7 +5,7 @@ A C++ implementation of the **AES (Advanced Encryption Standard)** algorithm, su
 ## Features
 
 - AES-128, 192, 256 encryption and decryption
-- ECB and CBC modes supported
+- ECB, CBC and CTR modes supported
 - PKCS#7 and Zero Padding implemented
 - Minimal external dependencies (standard C++17)
 
@@ -33,7 +33,7 @@ cmake --build build
 ./AES_CPP --file <filepath> (mandatory)
           --key <key> (mandatory)
           --iv <iv>
-          --chaining <CBC|ECB>
+          --chaining <CBC|ECB|CTR>
           --padding <PKCS7|ZERO>
           --output <output filepath>
           --decode
