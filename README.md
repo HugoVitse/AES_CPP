@@ -1,6 +1,6 @@
 # AES File Encryptor/Decryptor (ECB & CBC) – C++
 
-A C++ implementation of the **AES (Advanced Encryption Standard)** algorithm, supporting both **ECB (Electronic Codebook)** and **CBC (Cipher Block Chaining)** modes. It includes support for **PKCS#7** and **Zero Padding**.
+A C++ implementation of the **AES (Advanced Encryption Standard)** algorithm, supporting **ECB (Electronic Codebook)** , **CBC (Cipher Block Chaining)**  and **CTR (Counter)** modes. It includes support for **PKCS#7** and **Zero Padding**.
 
 ## Features
 
