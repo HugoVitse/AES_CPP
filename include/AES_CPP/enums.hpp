@@ -4,7 +4,8 @@ namespace AES_CPP {
 
 enum class ChainingMethod {
     CBC,
-    EBC
+    ECB,
+    CTR
 };
 
 enum class Padding {

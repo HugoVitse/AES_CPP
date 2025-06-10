@@ -1,5 +1,6 @@
 #include "AES_CPP/file.hpp"
 #include "AES_CPP/fileException.hpp"
+#include <math.h>
 
 namespace AES_CPP {
 
@@ -38,6 +39,7 @@ bool File::fileExists() {
 void File::splitFile(Padding* padding) {
     int nb_blocks = (this->getFileSize() / Block::BLOCK_SIZE) + (  (this->getFileSize()%Block::BLOCK_SIZE == 0 && *padding != Padding::PKcs7)   ? 0 : 1);
     this->nbFlows = this->getFileSize() / File::FILE_SIZE_MAX + (this->getFileSize()%File::FILE_SIZE_MAX == 0 ? 0 : 1);
+
     this->partialBlock = ! (this->getFileSize()%16 == 0);
     this->blocks.resize(this->nbFlows == 1 ? nb_blocks : File::FILE_SIZE_MAX / Block::BLOCK_SIZE);
     this->sizeLastFlow = nb_blocks % File::FLOW_SIZE;
@@ -157,21 +159,99 @@ void File::encodeBloc(Block* bloc) {
     bloc->encode();
 }
 
+void File::decodeBloc(Block* bloc) {
+    bloc->decode();
+}
+
 void File::encodeBlocksECB(){
 
     auto blocks = this->getBlocks();
-    size_t num_threads = std::thread::hardware_concurrency();
     size_t total_blocks = blocks->size();
+    size_t num_threads = std::min(total_blocks, size_t(std::thread::hardware_concurrency()));
 
-    for (size_t i = 0; i < total_blocks; i += num_threads) {
-        std::vector<std::thread> threads;
-        for (size_t j = 0; j < num_threads && i + j < total_blocks; ++j) {
-            threads.emplace_back(File::encodeBloc, &(*blocks)[i + j]);
-        }
-        for (auto& t : threads) {
-            t.join();
-        }
+    std::vector<std::thread> threads;
+
+    for (size_t t = 0; t < num_threads; ++t) {
+        threads.emplace_back([&, t]() {
+            for (size_t i = t; i < total_blocks; i += num_threads) {
+                File::encodeBloc(&(*blocks)[i]);
+            }
+        });
     }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+}
+
+void File::decodeBlocksECB(){
+
+    auto blocks = this->getBlocks();
+    size_t total_blocks = blocks->size();
+    size_t num_threads = std::min(total_blocks, size_t(std::thread::hardware_concurrency()));
+
+    std::vector<std::thread> threads;
+
+    for (size_t t = 0; t < num_threads; ++t) {
+        threads.emplace_back([&, t]() {
+            for (size_t i = t; i < total_blocks; i += num_threads) {
+                File::decodeBloc(&(*blocks)[i]);
+            }
+        });
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+}
+
+
+void File::encodeBlocksCTR(IV iv, Key* key) {
+    auto blocks = this->getBlocks();
+    size_t total_blocks = blocks->size();
+    size_t num_threads = std::min(total_blocks, size_t(std::thread::hardware_concurrency()));
+
+    std::vector<std::thread> threads;
+
+    
+    
+    
+    for (size_t t = 0; t < num_threads; ++t) {
+        threads.emplace_back([&, t]() {
+            for (size_t i = t; i < total_blocks; i += num_threads) {
+
+                int pow16 = 1;
+                int tmp = i;
+                while( pow(16,pow16) < i ){
+                    pow16+=1;
+                }
+
+                pow16 -=1;
+                for(int p = pow16; p >= 0; p-=1){
+                    iv.getIV()[15-p] = tmp / pow(16,pow16);
+                    tmp -= (tmp / pow(16,pow16)) *  pow(16,pow16);
+                }                
+                
+                Block* counterBlock = new Block(iv.getWords(), key);
+
+                File::encodeBloc(counterBlock);
+                Utils::XOR(&(*blocks)[i], *counterBlock);
+
+                
+            }
+        });
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+}
+
+void File::decodeBlocksCTR(IV iv, Key* key){
+
+    this->encodeBlocksCTR(iv,key);
 
 }
 
@@ -184,7 +264,7 @@ void File::deprecatedEncodeBlocksECB(){
 }
 
 
-void File::decodeBlocksECB() {
+void File::deprecatedDecodeBlocksECB() {
     for(int i=0; i < this->getBlocks()->size(); i+=1){    
         (*this->getBlocks())[i].decode();
     } 
@@ -216,12 +296,13 @@ void File::decodeBlocksCBC(IV iv) {
 }
 
 void File::writeBlocks(int flow, int fin){
-    std::fstream file(this->getOutputFilePath(), std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc);
+    std::fstream file(this->getOutputFilePath(), std::ios::in | std::ios::out | std::ios::binary);
 
 
     if (!file.is_open()) {
-        throw FileException("Impossible d'ouvrir le fichier");
-
+        file.open(this->getOutputFilePath(), std::ios::out | std::ios::binary);
+        file.close();
+        file.open(this->getOutputFilePath(), std::ios::in | std::ios::out | std::ios::binary);
     }
 
 
@@ -239,6 +320,7 @@ void File::writeBlocks(int flow, int fin){
         
 
         Block block = (*this->getBlocks())[k];
+        
 
 
         for(int i = 0; i < end ; i+=1){
@@ -251,11 +333,13 @@ void File::writeBlocks(int flow, int fin){
     file.close();
 }
 
-void File::encode(Key* key, ChainingMethod Method, IV* iv, Padding* padding) {
+void File::encode(Key* key, ChainingMethod Method,  IV* iv, Padding* padding, bool deprecated) {
     
     key->splitKey();
 	key->KeyExpansion();
 	this->splitFile(padding);
+
+
 
     for(int i = 0; i < this->nbFlows; i+=1){
         Utils::showProgressBar(i, this->nbFlows-1);
@@ -268,23 +352,38 @@ void File::encode(Key* key, ChainingMethod Method, IV* iv, Padding* padding) {
         else {
             this->fillBlocks(key, i);
         }
-        
-        if(Method == ChainingMethod::CBC) {
+
+        switch(Method) {
+            case ChainingMethod::CBC:
             iv->splitIV();
             this->encodeBlocksCBC(*iv);
+            break;
+            case ChainingMethod::ECB:
+            deprecated ? this->deprecatedEncodeBlocksECB() : this->encodeBlocksECB();
+            break;
+            case ChainingMethod::CTR:
+            iv->splitIV();
+            this->encodeBlocksCTR(*iv, key);
+            break;
+
         }
-        else this->deprecatedEncodeBlocksECB();
         
         this->writeBlocks(i); //85341 first good is 
 
+
     }
+    
 }
 
-void File::decode(Key* key, ChainingMethod Method, IV* iv) {
+void File::decode(Key* key, ChainingMethod Method, IV* iv, bool deprecated) {
     
     key->splitKey();
 	key->KeyExpansion();
 	this->splitFile(new Padding(Padding::None));
+
+    
+
+    
     for(int i = 0; i < this->nbFlows; i+=1){
 
         Utils::showProgressBar(i, this->nbFlows-1);
@@ -298,11 +397,23 @@ void File::decode(Key* key, ChainingMethod Method, IV* iv) {
         else {
             this->fillBlocks(key, i);
         }
-        if(Method == ChainingMethod::CBC) {
+
+
+        switch(Method) {
+            case ChainingMethod::CBC:
             iv->splitIV();
             this->decodeBlocksCBC(*iv);
+            break;
+            case ChainingMethod::ECB:
+            deprecated ? this->deprecatedDecodeBlocksECB() : decodeBlocksECB();
+            break;
+            case ChainingMethod::CTR:
+            iv->splitIV();
+            this->decodeBlocksCTR(*iv, key);
+            break;
         }
-        else this->decodeBlocksECB();
+
+
         if(i == this->nbFlows - 1) {
             int dePad = this->dePad();
             this->writeBlocks(i, dePad );
@@ -312,6 +423,7 @@ void File::decode(Key* key, ChainingMethod Method, IV* iv) {
         else this->writeBlocks(i);
 
     }
+    
 
 
     

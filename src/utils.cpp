@@ -170,7 +170,7 @@ void Utils::showProgressBar(int progress, int total) {
 }
 
 ChainingMethod Utils::parseChaining(const std::string& str) {
-    if (str == "ECB") return ChainingMethod::EBC;
+    if (str == "ECB") return ChainingMethod::ECB;
     if (str == "CBC") return ChainingMethod::CBC;
     throw po::validation_error(po::validation_error::invalid_option_value, "chaining method", str);
 }
@@ -251,7 +251,7 @@ void Utils::handleInput(int argc, char* argv[]){
     }
     else {
         std::cout << "Aucune méthode de chaînage précisée. ECB utilisée par défault" << std::endl;
-        chainingMethod = ChainingMethod::EBC;
+        chainingMethod = ChainingMethod::ECB;
     }
 
     
@@ -293,6 +293,18 @@ void Utils::handleInput(int argc, char* argv[]){
 
 }
 
+void Utils::generateRandomBinaryFile(const std::string& path, size_t size) {
+    std::ofstream file(path, std::ios::binary);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, 255);
 
+    for (size_t i = 0; i < size; ++i) {
+        char byte = static_cast<char>(dis(gen));
+        file.put(byte);
+    }
+
+    file.close();
+}
 
 }

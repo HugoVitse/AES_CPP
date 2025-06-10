@@ -30,22 +30,29 @@ class File {
 
         uint8_t dePad();
 
-        static const int FILE_SIZE_MAX = 1024000;
+        static const int FILE_SIZE_MAX = 8192;
         static const int FLOW_SIZE = FILE_SIZE_MAX / Block::BLOCK_SIZE;
         static void encodeBloc(Block* bloc);
+        static void decodeBloc(Block* bloc);
 
-        void encodeBlocksECB();
+
         void deprecatedEncodeBlocksECB();
-
-
+        void deprecatedDecodeBlocksECB();
+        
+        
+        
+        void encodeBlocksECB();
         void encodeBlocksCBC(IV iv);
+        void encodeBlocksCTR(IV iv, Key* key);
+
         void decodeBlocksECB();
         void decodeBlocksCBC(IV iv);
+        void decodeBlocksCTR(IV iv, Key* key);
 
 
         void writeBlocks(int flow, int fin = Block::BLOCK_SIZE);
-        void encode(Key* key, ChainingMethod Method, IV* iv=nullptr, Padding* padding=nullptr);
-        void decode(Key* key, ChainingMethod Method, IV* iv=nullptr);
+        void encode(Key* key, ChainingMethod Method, IV* iv=nullptr, Padding* padding=nullptr, bool deprecated = false);
+        void decode(Key* key, ChainingMethod Method, IV* iv=nullptr, bool deprecated = false);
 
 
     private:

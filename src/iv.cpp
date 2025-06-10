@@ -7,7 +7,7 @@ namespace AES_CPP {
 
 IV::IV(std::string iv) {
 
-    if ( static_cast<int>( iv.size()*4 ) != 128 ) {
+    if ( static_cast<int>( iv.size()*4 ) > 128) {
         throw IVException("La taille de la clé n'est pas correct.");
     }
 

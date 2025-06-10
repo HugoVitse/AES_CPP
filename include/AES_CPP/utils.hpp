@@ -6,6 +6,9 @@
 #include <boost/program_options.hpp>
 #include <filesystem>
 #include <array>
+#include <fstream>
+#include <random>
+#include <filesystem>
 
 namespace AES_CPP {
 
@@ -46,6 +49,9 @@ class Utils {
         static void handleInput(int argc, char* argv[]);
 
         static void showProgressBar(int progress, int total);
+
+        static void generateRandomBinaryFile(const std::string& path, size_t size);
+
 
         
 
