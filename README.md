@@ -47,7 +47,7 @@ cmake --build build
 ```bash
 ./AES_CPP --file <filepath> (mandatory)
           --key <key> (mandatory)
-          --output <output filepath> (encrypt the source file directly if not set)
+          --output <output filepath> (decrypt the source file directly if not set)
           --decode
 
 ```
