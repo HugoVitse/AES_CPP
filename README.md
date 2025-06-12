@@ -1,11 +1,11 @@
 # AES File Encryptor/Decryptor (ECB & CBC) – C++
 
-A C++ implementation of the **AES (Advanced Encryption Standard)** algorithm, supporting **ECB (Electronic Codebook)** , **CBC (Cipher Block Chaining)**  and **CTR (Counter)** modes. It includes support for **PKCS#7** and **Zero Padding**.
+A C++ implementation of the **AES (Advanced Encryption Standard)** algorithm, supporting **ECB (Electronic Codebook)** , **CBC (Cipher Block Chaining)** , **CTR (Counter)** and **GCM (Galois Counter Mode) modes. It includes support for **PKCS#7** and **Zero Padding**.
 
 ## Features
 
 - AES-128, 192, 256 encryption and decryption
-- ECB, CBC and CTR modes supported
+- ECB, CBC, CTR and GCM modes supported
 - PKCS#7 and Zero Padding implemented
 - Minimal external dependencies (standard C++17)
 
@@ -29,15 +29,26 @@ cmake --build build
 
 ## Usage
 
+### Encryption
+
 ```bash
 ./AES_CPP --file <filepath> (mandatory)
           --key <key> (mandatory)
-          --iv <iv>
-          --chaining <CBC|ECB|CTR>
-          --padding <PKCS7|ZERO>
-          --output <output filepath>
-          --decode
+          --iv <iv> (randomly generated if not set)
+          --chaining <CBC|ECB|CTR|GCM> (default : CBC)
+          --padding <PKCS7|ZERO> (default : PKCS7)
+          --output <output filepath> (encrypt the source file directly if not set)
           --encode
+
+```
+
+### Decryption
+
+```bash
+./AES_CPP --file <filepath> (mandatory)
+          --key <key> (mandatory)
+          --output <output filepath> (encrypt the source file directly if not set)
+          --decode
 
 ```
 

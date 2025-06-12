@@ -32,6 +32,10 @@ long File::getFileSize() {
     return this->fileSize;
 }
 
+void File::setFileSize(long size){
+    this->fileSize = size;
+}
+
 std::vector<Block>* File::getBlocks(){
     return &this->blocks;
 }
@@ -42,11 +46,20 @@ bool File::fileExists() {
 }
 
 void File::splitFile(Padding* padding) {
-    int nb_blocks = (   (this->getFileSize() - (*padding == Padding::None ? 33 : 0)) / Block::BLOCK_SIZE) + (  (  (this->getFileSize() - (*padding == Padding::None ? 33 : 0)) %Block::BLOCK_SIZE == 0 && *padding != Padding::PKcs7)   ? 0 : 1);
-    this->nbFlows = (this->getFileSize() - (*padding == Padding::None ? 33 : 0)) / File::FILE_SIZE_MAX + ((this->getFileSize() - (*padding == Padding::None ? 33 : 0))%File::FILE_SIZE_MAX == 0 ? 0 : 1);
 
-    this->partialBlock = ! ((this->getFileSize() - (*padding == Padding::None ? 33 : 0))%16 == 0);
-    this->blocks.resize(this->nbFlows == 1 ? nb_blocks : File::FILE_SIZE_MAX / Block::BLOCK_SIZE);
+    if(*padding == Padding::None){
+        this->fileSize -= 33;
+    }
+
+    int nb_blocks = ( this->fileSize / Block::BLOCK_SIZE ) + 
+                    ((this->fileSize % Block::BLOCK_SIZE == 0 && *padding != Padding::PKcs7)  ?  0 : 1);
+
+    this->nbFlows = ( this->fileSize  /  File::FILE_SIZE_MAX ) + 
+                    ((this->fileSize  %  File::FILE_SIZE_MAX == 0 ) ? 0 : 1);
+
+    this->partialBlock = ! ( this->fileSize % Block::BLOCK_SIZE == 0 );
+
+    this->blocks.resize( this->nbFlows == 1 ? nb_blocks : File::FILE_SIZE_MAX / Block::BLOCK_SIZE) ;
     this->sizeLastFlow = nb_blocks % File::FLOW_SIZE;
 
 }
@@ -492,7 +505,6 @@ Data File::readData() {
 
     }
 
-    std::filesystem::resize_file(this->getFilePath(), this->getFileSize() - 33);
     Data test(method, iv, tag);
     return test;
 
@@ -552,6 +564,7 @@ void File::encode(Key* key, ChainingMethod Method,  IV* iv, Padding* padding, bo
         
     }
     if(Method == ChainingMethod::GCM){
+        std::cout << std::endl << "Tag : ";
         this->tag->toString();
         this->writeData(Method,iv,tag);
     } 
@@ -619,19 +632,21 @@ void File::decode(Key* key, bool deprecated) {
         if(i == this->nbFlows - 1) {
             int dePad = this->dePad();
             this->writeBlocks(i, dePad );
-            std::filesystem::resize_file(this->getFilePath(), ( (this->getFileSize() - 33 ) - (Block::BLOCK_SIZE - dePad))  );
+            std::filesystem::resize_file(this->getFilePath(), ( this->getFileSize() - (Block::BLOCK_SIZE - dePad))  );
 
         }
         else this->writeBlocks(i);
 
     }
 
-    if(Method == ChainingMethod::GCM) this->tag->toString();
+    if(Method == ChainingMethod::GCM){
+        std::cout << std::endl << "Tag : ";
+        this->tag->toString();
 
-
-    
-
-
+        if( *this->tag != *data.getTag()) {
+            throw FileException("Tag incorrect ! L'intégrité des données a peut être été altérée");
+        }
+    }
     
 }
 

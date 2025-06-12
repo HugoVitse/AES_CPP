@@ -37,6 +37,7 @@ class File {
 
         bool fileExists();
         long getFileSize();
+        void setFileSize(long size);
         std::vector<Block>* getBlocks();
         void splitFile(Padding* padding);
         void fillBlocks(Key* key, int flow);

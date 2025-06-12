@@ -41,6 +41,8 @@ class Block {
         void toString();
 
         friend bool operator==(const Block& a, const Block& b);
+        friend bool operator!=(const Block& a, const Block& b);
+
 
 
     private:

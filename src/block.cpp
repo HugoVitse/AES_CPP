@@ -180,6 +180,12 @@ bool operator==(const Block& a, const Block& b) {
 
 }
 
+bool operator!=(const Block& a, const Block& b) {
+
+    return !(a==b);
+
+
+}
 
 
 } 

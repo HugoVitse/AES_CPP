@@ -234,6 +234,10 @@ void Utils::handleInput(int argc, char* argv[]){
         throw UtilException("Selectionnez un mode (--encode ou --decode)");
     }
 
+    if(decode && encode) {
+        throw UtilException("Ne selectionnez qu'un mode à la fois (--encode ou --decode)");
+    }
+
     if (vm.count("help")) {
         std::cout << desc << std::endl;
     }
@@ -251,34 +255,38 @@ void Utils::handleInput(int argc, char* argv[]){
         throw UtilException("Précisez une clé de chiffrement héxadécimale");
     }
     
-    if (vm.count("chaining")) {
-        std::cout << "Méthode de chaînage définie." << std::endl;
-    }
-    else {
-        std::cout << "Aucune méthode de chaînage précisée. CBC utilisée par défault" << std::endl;
-        chainingMethod = ChainingMethod::CBC;
-    }
+    if(encode) {
+        if (vm.count("chaining")) {
+            std::cout << "Méthode de chaînage définie." << std::endl;
+        }
+        else {
+            std::cout << "Aucune méthode de chaînage précisée. CBC utilisée par défault" << std::endl;
+            chainingMethod = ChainingMethod::CBC;
+        }
 
+        
+        if (vm.count("iv")) {
+            std::cout << "IV : " << iv << std::endl;
+        }
     
-    if (vm.count("iv")) {
-        std::cout << "IV : " << iv << std::endl;
+
+        if( (chainingMethod == ChainingMethod::CBC || chainingMethod == ChainingMethod::CTR || chainingMethod == ChainingMethod::GCM) && !vm.count("iv")) {
+            std::cout << "IV non précisé, généré aléatoirement" << std::endl;
+            iv = Utils::generateRandomIV();
+            std::cout << "IV : " << iv << std::endl;
+
+        }
+
+        if (vm.count("padding")) {
+            std::cout << "Padding défini." << std::endl;
+        }
+        else {
+            std::cout << "Aucune méthode de padding précisée. PKCS7 utilisée par défault" << std::endl;
+            padding = Padding::PKcs7;
+        }
     }
 
-    if( (chainingMethod == ChainingMethod::CBC || chainingMethod == ChainingMethod::CTR || chainingMethod == ChainingMethod::GCM) && !vm.count("iv")) {
-        std::cout << "IV non précisé, généré aléatoirement" << std::endl;
-        iv = Utils::generateRandomIV();
-        std::cout << "IV : " << iv << std::endl;
 
-    }
-
-
-    if (vm.count("padding")) {
-        std::cout << "Padding défini." << std::endl;
-    }
-    else {
-        std::cout << "Aucune méthode de padding précisée. PKCS7 utilisée par défault" << std::endl;
-        padding = Padding::PKcs7;
-    }
 
     if (vm.count("output")) {
         std::cout << "Fichier de sortie : " << outputFilename << std::endl;
