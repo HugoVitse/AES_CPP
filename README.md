@@ -1,6 +1,6 @@
-# AES File Encryptor/Decryptor (ECB & CBC) – C++
+# AES File Encryptor/Decryptor (ECB, CBC, CTR, GCM) – C++
 
-A C++ implementation of the **AES (Advanced Encryption Standard)** algorithm, supporting **ECB (Electronic Codebook)** , **CBC (Cipher Block Chaining)** , **CTR (Counter)** and **GCM (Galois Counter Mode) modes. It includes support for **PKCS#7** and **Zero Padding**.
+A C++ implementation of the **AES (Advanced Encryption Standard)** algorithm, supporting **ECB (Electronic Codebook)** , **CBC (Cipher Block Chaining)** , **CTR (Counter)** and **GCM (Galois Counter Mode)** modes. It includes support for **PKCS#7** and **Zero Padding**.
 
 ## Features
 
