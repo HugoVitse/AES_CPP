@@ -105,24 +105,15 @@ uint8_t Utils::xtime(uint8_t x) {
 }
 
 uint8_t Utils::specialMultiplication(uint8_t byte, uint8_t operande) {
-    switch (operande) {
-        case 1:
-            return byte;
-        case 2:
-            return xtime(byte);
-        case 3:
-            return xtime(byte) ^ byte;
-        case 9:
-            return xtime(xtime(xtime(byte))) ^ byte;
-        case 11:
-            return xtime(xtime(xtime(byte)) ^ byte) ^ byte;
-        case 13:
-            return xtime(xtime(xtime(byte) ^ byte)) ^ byte;
-        case 14:
-            return xtime(xtime(xtime(byte) ^ byte) ^ byte);
-        default:
-            throw UtilException("Multiplication impossible");
+    uint8_t result = 0;
+    while (operande) {
+        if (operande & 1) {
+            result ^= byte; 
+        }
+        byte = (byte & 0x80) ? ((byte << 1) ^ 0x1B) : (byte << 1);
+        operande >>= 1;
     }
+    return result;
 }
 
 
@@ -138,6 +129,17 @@ uint8_t Utils::MatrixMultiplication(int row, std::array< uint8_t, Block::BLOCK_D
     return result;
 
 }
+
+void Utils::blockMultiplication (Block* block, Block operande){
+
+    for(int i = 0; i < Block::BLOCK_DIMENSION; i+=1){
+        for(int j = 0; j < Block::BLOCK_DIMENSION; j+=1) {
+            (*block->getBlock())[i][j] = Utils::specialMultiplication((*block->getBlock())[i][j], (*operande.getBlock())[i][j]);
+        }
+    }
+
+}
+
 
 
 void Utils::ZeroPadding(std::array<uint8_t, Block::BLOCK_SIZE>* flatBlock, int bytesLeft) {
@@ -172,6 +174,8 @@ void Utils::showProgressBar(int progress, int total) {
 ChainingMethod Utils::parseChaining(const std::string& str) {
     if (str == "ECB") return ChainingMethod::ECB;
     if (str == "CBC") return ChainingMethod::CBC;
+    if (str == "CTR") return ChainingMethod::CTR;
+    if (str == "GCM") return ChainingMethod::GCM;
     throw po::validation_error(po::validation_error::invalid_option_value, "chaining method", str);
 }
 
@@ -206,6 +210,7 @@ void Utils::handleInput(int argc, char* argv[]){
 
     bool decode = false;
     bool encode = false;
+    
 
 
     po::options_description desc("Options disponibles");
@@ -213,8 +218,8 @@ void Utils::handleInput(int argc, char* argv[]){
         ("help,h", "Afficher l'aide")
         ("file,f", po::value<std::string>(&filename), "Nom du fichier")
         ("key,k", po::value<std::string>(&key), "Clé de chiffrement (hex)")
-        ("iv", po::value<std::string>(&iv), "Vecteur d'initialisation")
-        ("chaining,c", po::value<AES_CPP::ChainingMethod>(&chainingMethod), "Méthode de chaînage (ECB, CBC)")
+        ("iv, i", po::value<std::string>(&iv), "Vecteur d'initialisation")
+        ("chaining,c", po::value<AES_CPP::ChainingMethod>(&chainingMethod), "Méthode de chaînage (ECB, CBC, CTR, GCM)")
         ("padding,p", po::value<AES_CPP::Padding>(&padding), "Type de padding (ZERO, PKCS7)")
         ("decode,d", po::bool_switch(&decode), "Mode déchiffrement")
         ("encode,e", po::bool_switch(&encode), "Mode chiffrement")
@@ -250,8 +255,8 @@ void Utils::handleInput(int argc, char* argv[]){
         std::cout << "Méthode de chaînage définie." << std::endl;
     }
     else {
-        std::cout << "Aucune méthode de chaînage précisée. ECB utilisée par défault" << std::endl;
-        chainingMethod = ChainingMethod::ECB;
+        std::cout << "Aucune méthode de chaînage précisée. CBC utilisée par défault" << std::endl;
+        chainingMethod = ChainingMethod::CBC;
     }
 
     
@@ -259,8 +264,11 @@ void Utils::handleInput(int argc, char* argv[]){
         std::cout << "IV : " << iv << std::endl;
     }
 
-    if(chainingMethod == ChainingMethod::CBC && !vm.count("iv")) {
-        throw UtilException("IV manquant");
+    if( (chainingMethod == ChainingMethod::CBC || chainingMethod == ChainingMethod::CTR || chainingMethod == ChainingMethod::GCM) && !vm.count("iv")) {
+        std::cout << "IV non précisé, généré aléatoirement" << std::endl;
+        iv = Utils::generateRandomIV();
+        std::cout << "IV : " << iv << std::endl;
+
     }
 
 
@@ -283,11 +291,11 @@ void Utils::handleInput(int argc, char* argv[]){
     Key* _key = new AES_CPP::Key(key);
     IV* _iv = nullptr;
 
-    if(chainingMethod == ChainingMethod::CBC) {
+    if(chainingMethod == ChainingMethod::CBC || chainingMethod == ChainingMethod::CTR || chainingMethod == ChainingMethod::GCM) {
         _iv = new IV(iv);
     }
 
-    if(decode) _file->decode(_key,chainingMethod,_iv);
+    if(decode) _file->decode(_key);
     if(encode) _file->encode(_key, chainingMethod, _iv, &padding);
 
 
@@ -306,5 +314,21 @@ void Utils::generateRandomBinaryFile(const std::string& path, size_t size) {
 
     file.close();
 }
+
+std::string Utils::generateRandomIV(){
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<unsigned int> dis(0, 255);
+
+    std::ostringstream oss;
+
+    for (size_t i = 0; i < 16; ++i) {
+        unsigned int byte = dis(gen);
+        oss << std::hex << std::setw(2) << std::setfill('0') << byte;
+    }
+
+    return oss.str();
+}
+
 
 }

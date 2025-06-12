@@ -37,6 +37,8 @@ class Utils {
         static uint8_t hexPairToByte(char high, char low);
         static uint8_t specialMultiplication(uint8_t byte, uint8_t operande);
         static uint8_t MatrixMultiplication(int row, std::array< uint8_t, Block::BLOCK_DIMENSION> column, bool inverse=false);
+        static void blockMultiplication (Block* block, Block operande);
+
 
         static void ZeroPadding(std::array<uint8_t, Block::BLOCK_SIZE>* flatBlock, int bytesLeft);
         static void PKcs7(std::array<uint8_t, Block::BLOCK_SIZE>* flatBlock, int bytesLeft);
@@ -51,6 +53,7 @@ class Utils {
         static void showProgressBar(int progress, int total);
 
         static void generateRandomBinaryFile(const std::string& path, size_t size);
+        static std::string generateRandomIV();
 
 
         

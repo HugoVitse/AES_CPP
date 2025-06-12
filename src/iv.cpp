@@ -23,6 +23,13 @@ IV::IV(std::string iv) {
     
 }
 
+IV::IV(std::vector<uint8_t> iv) {
+
+    this->iv = iv;
+    this->size = iv.size()/2;  
+    
+}
+
 std::vector<uint8_t> IV::getIV() {
     return this->iv;
 }
@@ -42,6 +49,18 @@ void IV::splitIV() {
         std::copy_n(this->iv.begin() + i * Key::WORD_SIZE, Key::WORD_SIZE, this->words[i].begin());
 
     }
+
+}
+
+void IV::toString() {
+    for(auto col : this->getWords()){
+        for(auto row : col) {
+            std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)row;
+        }
+    }
+
+    std::cout << std::endl;
+
 
 }
 

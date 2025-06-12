@@ -15,6 +15,20 @@
 
 namespace AES_CPP {
 
+class Data {
+
+public:
+    Data(ChainingMethod Method,IV* iv, Block* tag);
+    ChainingMethod getMethod();
+    IV* getIV();
+    Block* getTag();
+private :
+    ChainingMethod Method;
+    IV* iv;
+    Block* tag = nullptr;
+
+};
+
 class File {
     public:
         File(const std::string& filePath, const std::string& outputFilePath);
@@ -43,16 +57,26 @@ class File {
         
         void encodeBlocksECB();
         void encodeBlocksCBC(IV iv);
-        void encodeBlocksCTR(IV iv, Key* key);
+        void encodeBlocksCTR(IV iv, Key* key, bool GCM = false);
+        void encodeBlocksGCM(IV iv, Key* key);
+
 
         void decodeBlocksECB();
         void decodeBlocksCBC(IV iv);
         void decodeBlocksCTR(IV iv, Key* key);
+        void decodeBlocksGCM(IV iv, Key* key);
+
+        void calculateTag(Key* key, IV iv);
+        Block* getTag();
+
 
 
         void writeBlocks(int flow, int fin = Block::BLOCK_SIZE);
+        void writeData(ChainingMethod Method,  IV* iv = nullptr, Block* tag = nullptr);
+        Data readData();
+
         void encode(Key* key, ChainingMethod Method, IV* iv=nullptr, Padding* padding=nullptr, bool deprecated = false);
-        void decode(Key* key, ChainingMethod Method, IV* iv=nullptr, bool deprecated = false);
+        void decode(Key* key, bool deprecated = false);
 
 
     private:
@@ -64,9 +88,10 @@ class File {
         bool partialBlock;
         int nbFlows;
         int sizeLastFlow;
-
+        Block* tag;
 
 };
+
 
 
 }

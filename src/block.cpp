@@ -149,4 +149,37 @@ void Block::decode() {
 }
 
 
+void Block::toString() {
+    for(auto col : *this->getBlock()){
+        for(auto row : col) {
+            std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)row;
+        }
+    }
+
+    std::cout << std::endl;
+
+
+}
+
+
+bool operator==(const Block& a, const Block& b) {
+
+    bool ret = true;
+
+    for(int i = 0; i < Block::BLOCK_DIMENSION; i+=1) {
+        for(int j = 0; j < Block::BLOCK_DIMENSION; j+=1) {
+            if( a.block[i][j] != b.block[i][j]  ){
+                ret = false;
+                break;
+            }
+        }
+    }
+
+    return ret;
+
+
+}
+
+
+
 } 

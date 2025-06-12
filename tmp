@@ -1,0 +1,10 @@
+char byte2;
+        std::vector<uint8_t> _iv;
+        for(int i =0; i < 16; i+=1) {
+            file.seekg(-32+i, std::ios::end);
+            file.read(&byte2, 1);
+            _iv.push_back(static_cast<uint8_t>(byte2));
+
+        }
+        iv = new IV(_iv);
+        iv->splitIV();

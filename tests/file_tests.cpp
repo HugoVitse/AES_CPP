@@ -85,6 +85,31 @@ TEST(FileTests, AES_TEST_CTR) {
     std::filesystem::remove(decryptedPath);
 }
 
+TEST(FileTests, AES_TEST_GCM) {
+
+    std::string inputPath = "tests/tmp/random_input.bin";
+    std::string encryptedPath = "tests/tmp/encrypted_output.bin";
+    std::string decryptedPath = "tests/tmp/decrypted_output.bin";
+
+    Utils::generateRandomBinaryFile(inputPath, File::FILE_SIZE_MAX*150 + 100);
+
+    File f(inputPath, encryptedPath);
+    Key* key = new Key("9f3c7e1a54b82d6e0c1f4a9b3d6e7c1f");
+    IV* iv = new IV("e3a2b4791c8f5d3072e68a5cf174d9b1");
+    f.encode(key, ChainingMethod::GCM, iv, new Padding(Padding::PKcs7));
+
+    File f2(encryptedPath, decryptedPath);
+    f2.decode(key, ChainingMethod::GCM, iv);
+
+    std::string original = readFile(inputPath);
+    std::string decrypted = readFile(decryptedPath);
+    ASSERT_EQ((*f.getTag()), (*f2.getTag()));
+    ASSERT_EQ(original, decrypted);
+    std::filesystem::remove(inputPath);
+    std::filesystem::remove(encryptedPath);
+    std::filesystem::remove(decryptedPath);
+}
+
 TEST(FileTests, SpeedTest) {
 
     std::string inputPath = "tests/tmp/random_input.bin";

@@ -1,1 +1,1 @@
-./build/RUN "$@"
+./build/AES_CPP "$@"

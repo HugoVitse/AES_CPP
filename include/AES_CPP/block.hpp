@@ -38,6 +38,10 @@ class Block {
         void encode();
         void decode();
 
+        void toString();
+
+        friend bool operator==(const Block& a, const Block& b);
+
 
     private:
 
