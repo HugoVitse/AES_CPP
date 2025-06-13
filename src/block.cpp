@@ -4,7 +4,8 @@
 
 namespace AES_CPP
 {
-  
+
+//constructors
 Block::Block(std::array< std::array< uint8_t, Block::BLOCK_DIMENSION >, Block::BLOCK_DIMENSION> block, Key* key) {
     this->block = block;
     this->key = key;
@@ -23,6 +24,7 @@ std::array< std::array< uint8_t, Block::BLOCK_DIMENSION >, Block::BLOCK_DIMENSIO
 
 
 
+//encryption functions
 void Block::AddRoundKey(int round) {
     for(int i=0; i < Block::BLOCK_DIMENSION; i+=1) {
         Utils::XOR( &this->block[i], (*this->key->getRoundKeysWords())[round*Block::BLOCK_DIMENSION+i] );
@@ -63,6 +65,8 @@ void Block::MixColumns() {
 }
 
 
+
+//decryption functions
 void Block::inverseSubBytes(){
 
     for(int i = 0; i < Block::BLOCK_DIMENSION; i+=1) {
@@ -95,6 +99,8 @@ void Block::inverseMixColumns() {
     }
 }
 
+
+//encryption rounds functions
 void Block::initialRound(){
     this->AddRoundKey(0);
 }
@@ -113,6 +119,8 @@ void Block::finalRound(){
     this->AddRoundKey(this->key->getNbRounds());
 }
 
+
+//decryption rounds functions
 void Block::inverseInitialRound(){
     this->AddRoundKey(this->key->getNbRounds());
 }
@@ -130,6 +138,8 @@ void Block::inverseFinalRound(){
     this->AddRoundKey(0);
 }
 
+
+//wrappers
 void Block::encode() {
     this->initialRound();
     for(int i=1; i < this->key->getNbRounds(); i+=1){
@@ -148,7 +158,31 @@ void Block::decode() {
 
 }
 
+//comparaison operators
+bool operator==(const Block& a, const Block& b) {
+    
+    bool ret = true;
+    
+    for(int i = 0; i < Block::BLOCK_DIMENSION; i+=1) {
+        for(int j = 0; j < Block::BLOCK_DIMENSION; j+=1) {
+            if( a.block[i][j] != b.block[i][j]  ){
+                ret = false;
+                break;
+            }
+        }
+    }
+    
+    return ret;
+      
+}
 
+bool operator!=(const Block& a, const Block& b) {
+    
+    return !(a==b);
+    
+}
+
+//utils
 void Block::toString() {
     for(auto col : *this->getBlock()){
         for(auto row : col) {
@@ -158,34 +192,6 @@ void Block::toString() {
 
     std::cout << std::endl;
 
-
 }
-
-
-bool operator==(const Block& a, const Block& b) {
-
-    bool ret = true;
-
-    for(int i = 0; i < Block::BLOCK_DIMENSION; i+=1) {
-        for(int j = 0; j < Block::BLOCK_DIMENSION; j+=1) {
-            if( a.block[i][j] != b.block[i][j]  ){
-                ret = false;
-                break;
-            }
-        }
-    }
-
-    return ret;
-
-
-}
-
-bool operator!=(const Block& a, const Block& b) {
-
-    return !(a==b);
-
-
-}
-
 
 } 

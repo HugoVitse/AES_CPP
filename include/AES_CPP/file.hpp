@@ -19,41 +19,50 @@ class Data {
 
 public:
     Data(ChainingMethod Method,IV* iv, Block* tag);
+
     ChainingMethod getMethod();
     IV* getIV();
     Block* getTag();
+
 private :
+
     ChainingMethod Method;
     IV* iv;
-    Block* tag = nullptr;
+    Block* tag;
 
 };
 
 class File {
+
     public:
+
+        static const int FILE_SIZE_MAX = 8192;
+        static const int FLOW_SIZE = FILE_SIZE_MAX / Block::BLOCK_SIZE;
+
         File(const std::string& filePath, const std::string& outputFilePath);
+
         std::string getFilePath();
         std::string getOutputFilePath();
-
-        bool fileExists();
-        long getFileSize();
-        void setFileSize(long size);
         std::vector<Block>* getBlocks();
+        long getFileSize();
+        Block* getTag();
+        void setFileSize(long size);
+
+        
         void splitFile(Padding* padding);
         void fillBlocks(Key* key, int flow);
         void fillLastBlock(Key* key, int flow, Padding* padding = nullptr);
 
+        bool fileExists();
         uint8_t dePad();
+        void calculateTag(Key* key, IV iv);
 
-        static const int FILE_SIZE_MAX = 8192;
-        static const int FLOW_SIZE = FILE_SIZE_MAX / Block::BLOCK_SIZE;
         static void encodeBloc(Block* bloc);
         static void decodeBloc(Block* bloc);
 
 
         void deprecatedEncodeBlocksECB();
         void deprecatedDecodeBlocksECB();
-        
         
         
         void encodeBlocksECB();
@@ -67,23 +76,19 @@ class File {
         void decodeBlocksCTR(IV iv, Key* key);
         void decodeBlocksGCM(IV iv, Key* key);
 
-        void calculateTag(Key* key, IV iv);
-        Block* getTag();
-
+        void encode(Key* key, ChainingMethod Method, IV* iv=nullptr, Padding* padding=nullptr, bool deprecated = false);
+        void decode(Key* key, bool deprecated = false);
 
 
         void writeBlocks(int flow, int fin = Block::BLOCK_SIZE);
         void writeData(ChainingMethod Method,  IV* iv = nullptr, Block* tag = nullptr);
         Data readData();
 
-        void encode(Key* key, ChainingMethod Method, IV* iv=nullptr, Padding* padding=nullptr, bool deprecated = false);
-        void decode(Key* key, bool deprecated = false);
 
 
     private:
         std::string filePath;
         std::string outputFilePath;
-
         long fileSize;
         std::vector<Block> blocks;
         bool partialBlock;

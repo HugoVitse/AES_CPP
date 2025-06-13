@@ -155,15 +155,18 @@ void File::fillLastBlock(Key* key, int flow, Padding* padding){
 uint8_t File::dePad() {
     uint8_t lastByte = (*this->blocks[this->blocks.size()-1].getBlock())[Block::BLOCK_DIMENSION-1][Block::BLOCK_DIMENSION-1];
 
+
     if(lastByte == 0) {
-        int i = Block::BLOCK_DIMENSION;
-        int j = Block::BLOCK_DIMENSION;
+        int i = Block::BLOCK_DIMENSION-1;
+        int j = Block::BLOCK_DIMENSION-1;
         while( (*this->blocks[this->blocks.size()-1].getBlock())[i][j] == 0 ){
+
             j-=1;
-            if( j == 0 ) {
+            if( j == -1 ) {
                 i -= 1;
-                j = Block::BLOCK_DIMENSION;
+                j = Block::BLOCK_DIMENSION-1;
             }
+
         }
         return i*Block::BLOCK_DIMENSION + j + 1;
     }
@@ -581,6 +584,7 @@ void File::decode(Key* key, bool deprecated) {
 	this->splitFile(new Padding(Padding::None));
 
     Data data = this->readData();
+    std::filesystem::resize_file(this->getFilePath(), this->getFileSize());
 
     ChainingMethod Method = data.getMethod();
     IV* iv = data.getIV();
