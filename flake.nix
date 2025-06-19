@@ -12,15 +12,21 @@
         pname = "aes_cpp";
         version = "1.0";
         src = ./.;
-        nativeBuildInputs = [ pkgs.cmake ];
-        buildInputs = [ pkgs.gcc ];
 
-        cmakeFlags = [ "-DCMAKE_BUILD_TYPE=Release" ];
+        nativeBuildInputs = [ pkgs.cmake ];
+        buildInputs = [ pkgs.boost pkgs.gcc ];
+
+        cmakeFlags = [
+          "-DCMAKE_BUILD_TYPE=Release"
+          "-DENABLE_TESTS=OFF"
+          "-DCMAKE_PREFIX_PATH=${pkgs.boost}"
+        ];
 
         installPhase = ''
           mkdir -p $out/bin
-          cp aes_cpp $out/bin/
+          cp AES_CPP $out/bin/
         '';
       };
+
     };
 }
