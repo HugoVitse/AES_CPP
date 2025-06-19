@@ -15,6 +15,9 @@ add_library(aes_lib ${SOURCES})
 
 add_executable(AES_CPP main.cpp)
 
+find_package(Qt6 REQUIRED COMPONENTS Widgets)
+target_link_libraries(AES_CPP PRIVATE Qt6::Widgets)
+
 find_package(Boost REQUIRED COMPONENTS program_options)
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
