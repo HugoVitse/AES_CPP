@@ -26,25 +26,8 @@ else()
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_link_libraries(AES_CPP PRIVATE stdc++fs)
+    target_link_libraries(AES_CPP PRIVATE stdc++fs pthread)
 endif()
-
-if(ENABLE_TESTS)
-    find_package(GTest REQUIRED)
-    if(GTEST_FOUND)
-        include_directories(${GTEST_INCLUDE_DIRS})
-
-        file(GLOB_RECURSE TEST_SOURCES "tests/*.cpp")
-        add_executable(TESTS ${TEST_SOURCES})
-
-        target_link_libraries(TESTS aes_lib ${GTEST_LIBRARIES} gtest_main pthread Boost::program_options)
-        add_test(NAME AES_CPP_tests COMMAND TESTS)
-    else()
-        message(FATAL_ERROR "GoogleTest not found")
-    endif()
-endif()
-
-
 
 set(CPACK_GENERATOR "DEB")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Hugo Vitse")

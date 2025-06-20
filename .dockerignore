@@ -1,0 +1,8 @@
+flake.lock
+flake.nix
+.vscode
+build
+result
+scripts
+tests
+README.md
