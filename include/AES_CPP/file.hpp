@@ -18,10 +18,11 @@ namespace AES_CPP {
 class Data {
 
 public:
-    Data(ChainingMethod Method,IV* iv, Block* tag);
+    Data(ChainingMethod Method,IV* iv, Block* tag, int bytesLeft);
 
     ChainingMethod getMethod();
     IV* getIV();
+    int getBytesLeft();
     Block* getTag();
 
 private :
@@ -29,6 +30,7 @@ private :
     ChainingMethod Method;
     IV* iv;
     Block* tag;
+    int bytesLeft;
 
 };
 
@@ -55,7 +57,7 @@ class File {
 
         bool fileExists();
         uint8_t dePad();
-        void calculateTag(Key* key, IV iv);
+        void calculateTag(Key* key, IV iv, int* bytesLeft = nullptr);
 
         static void encodeBloc(Block* bloc);
         static void decodeBloc(Block* bloc);
@@ -74,14 +76,14 @@ class File {
         void decodeBlocksECB();
         void decodeBlocksCBC(IV iv);
         void decodeBlocksCTR(IV iv, Key* key);
-        void decodeBlocksGCM(IV iv, Key* key);
+        void decodeBlocksGCM(IV iv, Key* key, int bytesLeft);
 
         void encode(Key* key, ChainingMethod Method, IV* iv=nullptr, Padding* padding=nullptr, bool deprecated = false);
         void decode(Key* key, bool deprecated = false);
 
 
         void writeBlocks(int flow, int fin = Block::BLOCK_SIZE);
-        void writeData(ChainingMethod Method,  IV* iv = nullptr, Block* tag = nullptr);
+        void writeData(int bytesLeft, ChainingMethod Method,  IV* iv = nullptr, Block* tag = nullptr);
         Data readData();
 
 

@@ -48,7 +48,7 @@ bool File::fileExists() {
 void File::splitFile(Padding* padding) {
 
     if(*padding == Padding::None){
-        this->fileSize -= 33;
+        this->fileSize -= 34;
     }
 
     int nb_blocks = ( this->fileSize / Block::BLOCK_SIZE ) + 
@@ -176,7 +176,7 @@ uint8_t File::dePad() {
     }
 }
 
-void File::calculateTag(Key* key, IV iv) {
+void File::calculateTag(Key* key, IV iv, int* bytesLeft) {
 
     std::array< std::array< uint8_t, Block::BLOCK_DIMENSION >, Block::BLOCK_DIMENSION> zeros;
     for (auto& row : zeros) {
@@ -187,7 +187,7 @@ void File::calculateTag(Key* key, IV iv) {
     zerosBlock.encode();
 
     
-
+    this->tag->toString();
 
 
     Utils::blockMultiplication(tag, zerosBlock);
@@ -197,6 +197,8 @@ void File::calculateTag(Key* key, IV iv) {
         Utils::blockMultiplication(tag, zerosBlock);
     }
 
+    this->tag->toString();
+
 
     std::array< std::array< uint8_t, Block::BLOCK_DIMENSION >, Block::BLOCK_DIMENSION> len;
     for (auto& row : len) {
@@ -204,8 +206,9 @@ void File::calculateTag(Key* key, IV iv) {
     }
 
     int pow16 = 1;
-    int tmp = this->getFileSize() * 8;
-    while( pow(16,pow16) < (this->getFileSize()*8) ){
+    int actualSize = bytesLeft == nullptr ? this->getFileSize() : (this->getFileSize() - (Block::BLOCK_SIZE - *bytesLeft));
+    int tmp = actualSize* 8;
+    while( pow(16,pow16) < (actualSize*8) ){
         pow16+=1;
     }
 
@@ -216,9 +219,12 @@ void File::calculateTag(Key* key, IV iv) {
     }
 
     Block lenBlock(len);
+    lenBlock.toString();
 
     Utils::XOR(tag, lenBlock);
+    this->tag->toString();
     Utils::blockMultiplication(tag, zerosBlock);
+    this->tag->toString();
 
     iv.getIV()[iv.getSize()-1] = 0;
     iv.splitIV();
@@ -226,6 +232,8 @@ void File::calculateTag(Key* key, IV iv) {
     Block counterBlock(iv.getWords(), key);
 
     Utils::XOR(tag, counterBlock);
+
+    this->tag->toString();
 
 }
 
@@ -339,8 +347,8 @@ void File::encodeBlocksGCM(IV iv, Key* key) {
         
 }
 
-void File::decodeBlocksGCM(IV iv, Key* key) {
-    this->calculateTag(key,iv);
+void File::decodeBlocksGCM(IV iv, Key* key, int bytesLeft) {
+    this->calculateTag(key,iv, &bytesLeft);
     this->decodeBlocksCTR(iv, key);
 }
 
@@ -424,7 +432,7 @@ void File::writeBlocks(int flow, int fin){
     file.close();
 }
 
-void File::writeData(ChainingMethod Method,  IV* iv, Block* tag){
+void File::writeData(int bytesLeft, ChainingMethod Method,  IV* iv, Block* tag){
     std::fstream file(this->getOutputFilePath(), std::ios::in | std::ios::out | std::ios::binary);
 
 
@@ -437,7 +445,7 @@ void File::writeData(ChainingMethod Method,  IV* iv, Block* tag){
 
 
     file.seekp(0, std::ios::end);
-
+    file.put(static_cast<char>(bytesLeft));
     file.put(static_cast<char>(Method));
 
     if(iv == nullptr) {
@@ -480,8 +488,12 @@ Data File::readData() {
         throw FileException("Impossible d'ouvrir le fichier.");
     }
 
-    file.seekg(-33, std::ios::end);
+    file.seekg(-34, std::ios::end);
     char byte;
+    file.read(&byte, 1);
+
+    int bytesLeft = (int)byte;
+    file.seekg(-33, std::ios::end);
     file.read(&byte, 1);
 
     ChainingMethod method = static_cast<ChainingMethod>((int)byte);
@@ -508,7 +520,7 @@ Data File::readData() {
 
     }
 
-    Data test(method, iv, tag);
+    Data test(method, iv, tag, bytesLeft);
     return test;
 
 
@@ -517,7 +529,9 @@ Data File::readData() {
 
 
 void File::encode(Key* key, ChainingMethod Method,  IV* iv, Padding* padding, bool deprecated) {
+
     
+    int bytesLeft = this->getFileSize()%Block::BLOCK_SIZE;
     key->splitKey();
 	key->KeyExpansion();
 	this->splitFile(padding);
@@ -569,10 +583,10 @@ void File::encode(Key* key, ChainingMethod Method,  IV* iv, Padding* padding, bo
     if(Method == ChainingMethod::GCM){
         std::cout << std::endl << "Tag : ";
         this->tag->toString();
-        this->writeData(Method,iv,tag);
+        this->writeData(bytesLeft,Method,iv,tag);
     } 
     else {
-        this->writeData(Method,iv,nullptr);
+        this->writeData(bytesLeft,Method,iv,nullptr);
     }
     
 }
@@ -628,7 +642,7 @@ void File::decode(Key* key, bool deprecated) {
             break;
             case ChainingMethod::GCM:
             iv->splitIV();
-            this->decodeBlocksGCM(*iv, key);
+            this->decodeBlocksGCM(*iv, key, data.getBytesLeft());
             break;
         }
 
@@ -647,6 +661,7 @@ void File::decode(Key* key, bool deprecated) {
         std::cout << std::endl << "Tag : ";
         this->tag->toString();
 
+        data.getTag()->toString();
         if( *this->tag != *data.getTag()) {
             throw FileException("Tag incorrect ! L'intégrité des données a peut être été altérée");
         }
@@ -655,8 +670,9 @@ void File::decode(Key* key, bool deprecated) {
 }
 
 
-Data::Data(ChainingMethod Method,IV* iv, Block* tag) {
+Data::Data(ChainingMethod Method,IV* iv, Block* tag, int bytesLeft) {
     this->Method = Method;
+    this->bytesLeft = bytesLeft;
     this->iv = iv;
     this->tag = tag;
 }
@@ -671,6 +687,10 @@ IV* Data::getIV(){
 
 Block* Data::getTag(){
     return this->tag;
+}
+
+int Data::getBytesLeft() {
+    return this->bytesLeft;
 }
 
 }
