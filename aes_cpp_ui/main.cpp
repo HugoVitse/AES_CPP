@@ -30,11 +30,11 @@ void fillFiles(Ui::MainWindow ui, EncryptedFileRegistry registry){
         // Supprimer le widget associé
         QWidget* widget = ui.listWidget->itemWidget(item);
         if (widget) {
-            ui.listWidget->removeItemWidget(item);  // Détache du QListWidget
-            delete widget;                           // Libère la mémoire du widget
+            ui.listWidget->removeItemWidget(item);  
+            delete widget;                           
         }
 
-        delete item; // Supprime l'item lui-même
+        delete item; 
     }
 
 
@@ -43,14 +43,11 @@ void fillFiles(Ui::MainWindow ui, EncryptedFileRegistry registry){
         QString file = QString::fromStdString(stdFile);
 
 
-        // 1. Crée un widget de ligne personnalisé
         QWidget* itemWidget = new QWidget();
 
-        // 2. Crée les composants
         QLabel* label = new QLabel(file);
         QPushButton* button = new QPushButton("Déchiffrer");
 
-        // 3. Layout horizontal
         QHBoxLayout* layout = new QHBoxLayout(itemWidget);
         layout->addWidget(label);
         layout->addStretch(); // pousse le bouton à droite
@@ -62,12 +59,10 @@ void fillFiles(Ui::MainWindow ui, EncryptedFileRegistry registry){
 
         QListWidgetItem* listItem = new QListWidgetItem();
         listItem->setSizeHint(itemWidget->sizeHint());
-        // 5. Ajoute l'item et le widget au QListWidget
 
         ui.listWidget->addItem(listItem);
         ui.listWidget->setItemWidget(listItem, itemWidget);
 
-        // 6. Connecte le bouton à une lambda utilisant std::string ou QString
         QObject::connect(button, &QPushButton::clicked, [file, ui]() {
             bool ok;
             QString text = QInputDialog::getText(nullptr, "Entrée requise",
@@ -110,7 +105,6 @@ int main(int argc, char *argv[])
 
 
 
-    // Connecter le bouton "Parcourir"
     QObject::connect(ui.pushButton, &QPushButton::clicked, [&]() {
         QString filePath = QFileDialog::getOpenFileName(&window, "Choisir un fichier", "", "Tous les fichiers (*)");
         if (!filePath.isEmpty()) {
@@ -141,7 +135,6 @@ int main(int argc, char *argv[])
     });
 
 
-    // Connecter le bouton "Encrypter"
     QObject::connect(ui.pushButton_2, &QPushButton::clicked, [&]() {
         QString path = ui.lineEdit->text();
         QString keyString = ui.lineEdit_2->text();
@@ -156,6 +149,7 @@ int main(int argc, char *argv[])
                 file.decode(&key);
                 registry.removeFile(pathStr);
                 ui.pushButton_2->setText("Chiffrer");
+                QMessageBox::information(nullptr, "Déchiffrement réussi \n", "Fichier déchiffré avec succès");
 
             }
             else {
@@ -164,13 +158,15 @@ int main(int argc, char *argv[])
                 file.encode(&key, AES_CPP::ChainingMethod::GCM, &iv, &padding);
                 registry.addFile(pathStr);
                 ui.pushButton_2->setText("Déchiffrer");
+                QMessageBox::information(nullptr, "Chiffrement réussi \n", "Fichier chiffré avec succès");
             }
 
+            ui.lineEdit->setText("");
+            ui.lineEdit_2->setText("");
 
         }
     });
 
-    // (Optionnel) Appliquer un style moderne
     app.setStyleSheet(R"(
         QPushButton {
             background-color: #2d89ef;
@@ -188,7 +184,7 @@ int main(int argc, char *argv[])
         }
     )");
 
-    //window.setFixedSize(400, 150); // Fixer la taille si tu veux
+    window.setFixedSize(850, 500); 
     window.show();
     return app.exec();
 }

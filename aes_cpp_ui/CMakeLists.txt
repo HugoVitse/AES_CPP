@@ -4,9 +4,6 @@ project(aes_cpp_ui LANGUAGES CXX)
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
 
 
-file(GLOB_RECURSE SOURCES "../src/*.cpp")
-add_library(aes_lib ${SOURCES})
-
 qt_standard_project_setup()
 
 qt_add_executable(aes_cpp_ui
@@ -17,7 +14,6 @@ qt_add_executable(aes_cpp_ui
     mainwindow.ui
     encryptedfileregistry.h encryptedfileregistry.cpp
 )
-include_directories(${CMAKE_SOURCE_DIR}/../include)
 
 target_link_libraries(aes_cpp_ui
     PRIVATE
@@ -28,7 +24,6 @@ target_link_libraries(aes_cpp_ui
 
 include(GNUInstallDirs)
 
-find_package(Boost REQUIRED COMPONENTS program_options)
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     target_link_libraries(aes_cpp_ui PRIVATE aes_lib Boost::program_options)

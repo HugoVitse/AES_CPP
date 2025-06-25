@@ -44,7 +44,7 @@ if(ENABLE_TESTS)
     endif()
 endif()
 
-
+add_subdirectory(aes_cpp_ui)
 
 set(CPACK_GENERATOR "DEB")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Hugo Vitse")

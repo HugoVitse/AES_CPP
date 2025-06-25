@@ -55,6 +55,9 @@
          <height>22</height>
         </rect>
        </property>
+       <property name="placeholderText">
+        <string>Fichier à chiffrer</string>
+       </property>
       </widget>
       <widget class="QLineEdit" name="lineEdit_2">
        <property name="geometry">
@@ -93,6 +96,24 @@
        </property>
        <property name="text">
         <string>Mes dossiers chiffrés</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_2">
+       <property name="geometry">
+        <rect>
+         <x>190</x>
+         <y>100</y>
+         <width>441</width>
+         <height>81</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>22</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>AES File encryptor / decryptor</string>
        </property>
       </widget>
      </widget>

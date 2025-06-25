@@ -186,9 +186,6 @@ void File::calculateTag(Key* key, IV iv, int* bytesLeft) {
     Block zerosBlock(zeros, key);
     zerosBlock.encode();
 
-    
-    this->tag->toString();
-
 
     Utils::blockMultiplication(tag, zerosBlock);
 
@@ -196,8 +193,6 @@ void File::calculateTag(Key* key, IV iv, int* bytesLeft) {
         Utils::XOR(tag, block);
         Utils::blockMultiplication(tag, zerosBlock);
     }
-
-    this->tag->toString();
 
 
     std::array< std::array< uint8_t, Block::BLOCK_DIMENSION >, Block::BLOCK_DIMENSION> len;
@@ -219,12 +214,9 @@ void File::calculateTag(Key* key, IV iv, int* bytesLeft) {
     }
 
     Block lenBlock(len);
-    lenBlock.toString();
 
     Utils::XOR(tag, lenBlock);
-    this->tag->toString();
     Utils::blockMultiplication(tag, zerosBlock);
-    this->tag->toString();
 
     iv.getIV()[iv.getSize()-1] = 0;
     iv.splitIV();
@@ -232,8 +224,6 @@ void File::calculateTag(Key* key, IV iv, int* bytesLeft) {
     Block counterBlock(iv.getWords(), key);
 
     Utils::XOR(tag, counterBlock);
-
-    this->tag->toString();
 
 }
 

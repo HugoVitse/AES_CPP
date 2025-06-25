@@ -32,7 +32,7 @@ bool EncryptedFileRegistry::removeFile(const std::string& filePath) {
     std::vector<std::string> files = getAllFiles();
     bool found = false;
 
-    std::ofstream out(registryPath, std::ios::trunc);  // on écrase le fichier
+    std::ofstream out(registryPath, std::ios::trunc); 
     if (!out.is_open()) return false;
 
     for (const auto& f : files) {
@@ -69,5 +69,5 @@ bool EncryptedFileRegistry::contains(const std::string& filePath) const {
 }
 
 void EncryptedFileRegistry::clear() {
-    std::ofstream out(registryPath, std::ios::trunc); // truncate
+    std::ofstream out(registryPath, std::ios::trunc); 
 }
