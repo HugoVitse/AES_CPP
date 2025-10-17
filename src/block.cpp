@@ -79,10 +79,11 @@ void Block::inverseSubBytes(){
 
 void Block::inverseShitRows(){
 
+
     for(int i = 1; i < Block::BLOCK_DIMENSION; i+=1) {
         for(int k = 0; k < i; k+=1){
             uint8_t tmp = (*this->getBlock())[Block::BLOCK_DIMENSION-1][i];
-            for(int j = Block::BLOCK_DIMENSION - 1; j >= 0 ; j-=1) {
+            for(int j = Block::BLOCK_DIMENSION - 1; j > 0 ; j-=1) {
                 (*this->getBlock())[j][i] = (*this->getBlock())[j-1][i];
             }
             (*this->getBlock())[0][i] = tmp;

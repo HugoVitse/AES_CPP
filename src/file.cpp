@@ -373,12 +373,12 @@ void File::encodeBlocksCBC(IV iv) {
 }
 
 void File::decodeBlocksCBC(IV iv) {
-
+    
     for(int i= this->getBlocks()->size() - 1; i > 0; i-=1){   
         (*this->getBlocks())[i].decode();
         Utils::XOR( &(*this->getBlocks())[i], (*this->getBlocks())[i-1]);
     }
-
+    
     (*this->getBlocks())[0].decode();
     Utils::XOR( &(*this->getBlocks())[0], Block(iv.getWords()));
     
@@ -439,6 +439,7 @@ void File::writeData(int bytesLeft, ChainingMethod Method,  IV* iv, Block* tag){
     file.put(static_cast<char>(Method));
 
     if(iv == nullptr) {
+        
         for(int i = 0; i < 16; i+=1){
             file.put(static_cast<char>(0));
         }
@@ -481,6 +482,7 @@ Data File::readData() {
     file.seekg(-34, std::ios::end);
     char byte;
     file.read(&byte, 1);
+    
 
     int bytesLeft = (int)byte;
     file.seekg(-33, std::ios::end);
@@ -520,7 +522,6 @@ Data File::readData() {
 
 void File::encode(Key* key, ChainingMethod Method,  IV* iv, Padding* padding, bool deprecated) {
 
-    
     int bytesLeft = this->getFileSize()%Block::BLOCK_SIZE;
     key->splitKey();
 	key->KeyExpansion();
@@ -582,10 +583,15 @@ void File::encode(Key* key, ChainingMethod Method,  IV* iv, Padding* padding, bo
 }
 
 void File::decode(Key* key, bool deprecated) {
+
+    
+
     
     key->splitKey();
 	key->KeyExpansion();
 	this->splitFile(new Padding(Padding::None));
+
+    
 
     Data data = this->readData();
     std::filesystem::resize_file(this->getFilePath(), this->getFileSize());
@@ -644,6 +650,7 @@ void File::decode(Key* key, bool deprecated) {
 
         }
         else this->writeBlocks(i);
+        
 
     }
 

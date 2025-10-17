@@ -23,9 +23,7 @@ TEST(FileTests, AES_TEST_ECB_PKCS7) {
     std::filesystem::remove(inputPath);
     std::filesystem::remove(encryptedPath);
     std::filesystem::remove(decryptedPath);
-
     Utils::generateRandomBinaryFile(inputPath, File::FILE_SIZE_MAX*150 + 100);
-
     File f(inputPath, encryptedPath);
     Key* key = new Key("9f3c7e1a54b82d6e0c1f4a9b3d6e7c1f");
     f.encode(key, ChainingMethod::ECB, nullptr, new Padding(Padding::PKcs7));
