@@ -8,6 +8,7 @@ A C++ implementation of the **AES (Advanced Encryption Standard)** algorithm, su
 - ECB, CBC, CTR and GCM modes supported
 - PKCS#7 and Zero Padding implemented
 - Minimal external dependencies (standard C++17)
+- Python bidings (.so)
 
 ## Compilation requirements
 
