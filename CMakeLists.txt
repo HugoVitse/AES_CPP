@@ -10,6 +10,7 @@ enable_testing()
 
 option(ENABLE_TESTS "Build unit tests" ON)
 option(ENABLE_PYTHON_BINDING "Build Python binding" ON)
+option(ENABLE_NODE_BINDING "Build Node binding" ON)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -101,4 +102,38 @@ if(ENABLE_PYTHON_BINDING)
     # (Remplace "python3.X" par ta version, ex: python3.11)
     install(TARGETS aescpp
         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/python3.X/site-packages)
+endif()
+
+# =======================
+#   NODEJS BINDING
+# =======================
+if(ENABLE_NODE_BINDING)
+    message(STATUS "Building Node.js bindings via node-addon-api")
+
+    # Source du binding
+    set(NODE_BINDING_SRC node_bindings.cpp)
+
+    # Crée une librairie partagée .node
+    add_library(aescpp_node MODULE ${NODE_BINDING_SRC})
+
+    # Includes
+    target_include_directories(aescpp_node PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/audit/node_modules/node-addon-api  # napi.h
+        /usr/include/node                                                   # node_api.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+
+    # Lier la lib C++ principale
+    target_link_libraries(aescpp_node PRIVATE aes_lib)
+
+    # Renommer la sortie pour avoir l'extension .node
+    set_target_properties(aescpp_node PROPERTIES
+        PREFIX ""
+        SUFFIX ".node"
+    )
+
+    # Installation optionnelle
+    install(TARGETS aescpp_node
+        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/node_modules/aescpp
+    )
 endif()

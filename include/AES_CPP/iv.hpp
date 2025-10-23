@@ -17,7 +17,7 @@ class IV {
         IV(std::vector<uint8_t> iv);
         IV();
 
-        std::vector<uint8_t> getIV();
+        std::vector<uint8_t>& getIV();
         int getSize();
         std::array< std::array< uint8_t, Block::BLOCK_DIMENSION >, Block::BLOCK_DIMENSION> getWords();
         void splitIV();

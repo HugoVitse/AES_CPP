@@ -58,6 +58,8 @@ class File {
         bool fileExists();
         uint8_t dePad();
         void calculateTag(Key* key, IV iv, int* bytesLeft = nullptr);
+        void calculateTagWrapper(Key* key, ChainingMethod Method,  IV* iv);
+
 
         static void encodeBloc(Block* bloc);
         static void decodeBloc(Block* bloc);
@@ -69,22 +71,24 @@ class File {
         
         void encodeBlocksECB();
         void encodeBlocksCBC(IV iv);
-        void encodeBlocksCTR(IV iv, Key* key, bool GCM = false);
-        void encodeBlocksGCM(IV iv, Key* key);
+        void encodeBlocksCTR(IV iv, Key* key, int flow, bool GCM = false);
+        void encodeBlocksGCM(IV iv, int flow, Key* key);
 
 
         void decodeBlocksECB();
         void decodeBlocksCBC(IV iv);
-        void decodeBlocksCTR(IV iv, Key* key);
-        void decodeBlocksGCM(IV iv, Key* key, int bytesLeft);
+        void decodeBlocksCTR(IV iv, Key* key, int flow , bool GCM = false);
+        void decodeBlocksGCM(IV iv, Key* key, int flow,  int bytesLeft);
 
-        void encode(Key* key, ChainingMethod Method, IV* iv=nullptr, Padding* padding=nullptr, bool deprecated = false);
+        void encode(Key* key, ChainingMethod Method, IV* iv=nullptr, Padding* padding=nullptr, bool deprecated = false, bool metaData = true);
         void decode(Key* key, bool deprecated = false);
 
 
         void writeBlocks(int flow, int fin = Block::BLOCK_SIZE);
         void writeData(int bytesLeft, ChainingMethod Method,  IV* iv = nullptr, Block* tag = nullptr);
         Data readData();
+        IV* readIV(bool input=false);
+        IV* readIV(int flow);
 
 
 
@@ -96,6 +100,7 @@ class File {
         bool partialBlock;
         int nbFlows;
         int sizeLastFlow;
+        int nbblocks;
         Block* tag;
 
 };

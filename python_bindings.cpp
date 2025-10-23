@@ -20,10 +20,12 @@ PYBIND11_MODULE(aescpp, m) {
              py::arg("method"),
              py::arg("iv") = nullptr,
              py::arg("padding") = nullptr,
-             py::arg("deprecated") = false)
+             py::arg("deprecated") = false,
+             py::arg("meta") = true)
         .def("decode", &File::decode,
              py::arg("key"),
              py::arg("deprecated") = false);
+             
 
     // --- Class: Key ---
     py::class_<AES_CPP::Key>(m, "Key")

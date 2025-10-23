@@ -156,6 +156,37 @@ void Utils::PKcs7(std::array<uint8_t, Block::BLOCK_SIZE>* flatBlock, int bytesLe
     
 }
 
+bool Utils::increment_iv_be(IV &iv, bool flag) {
+    if(flag) {
+        iv.splitIV();
+        iv.toString();
+    }
+    for (int i = 15; i >= 0; --i) {
+        if (++iv.getIV()[i] != 0){
+            iv.splitIV();
+            if(flag) iv.toString();
+            return true; // pas de retenue -> fini
+        } 
+    }
+    // Overflow : on a roulé sur 0...0
+    return false;
+}
+
+void Utils::add_to_iv_be(IV &iv, size_t value) {
+    // Ajouter 'value' à l'IV traité comme un grand entier big-endian (128 bits)
+    // On commence par le byte le plus à droite (index 15) et on propage la retenue
+    uint64_t carry = value;
+    
+    for (int i = 15; i >= 0 && carry > 0; --i) {
+        uint64_t sum = static_cast<uint64_t>(iv.getIV()[i]) + carry;
+        iv.getIV()[i] = static_cast<uint8_t>(sum & 0xFF);
+        carry = sum >> 8;  // La retenue pour le prochain byte
+    }
+    
+    iv.splitIV();
+}
+
+
 void Utils::showProgressBar(int progress, int total) {
     const int barWidth = 50;
     float ratio = static_cast<float>(progress) / total;
@@ -198,6 +229,7 @@ void validate(boost::any& v, const std::vector<std::string>& values, AES_CPP::Pa
 }
 
 
+
 void Utils::handleInput(int argc, char* argv[]){
 
     std::string filename;
@@ -211,6 +243,7 @@ void Utils::handleInput(int argc, char* argv[]){
     bool decode = false;
     bool encode = false;
     
+    bool meta = true;
 
 
     po::options_description desc("Options disponibles");
@@ -218,18 +251,20 @@ void Utils::handleInput(int argc, char* argv[]){
         ("help,h", "Afficher l'aide")
         ("file,f", po::value<std::string>(&filename), "Nom du fichier")
         ("key,k", po::value<std::string>(&key), "Clé de chiffrement (hex)")
-        ("iv, i", po::value<std::string>(&iv), "Vecteur d'initialisation")
+        ("iv,i", po::value<std::string>(&iv), "Vecteur d'initialisation")
         ("chaining,c", po::value<AES_CPP::ChainingMethod>(&chainingMethod), "Méthode de chaînage (ECB, CBC, CTR, GCM)")
         ("padding,p", po::value<AES_CPP::Padding>(&padding), "Type de padding (ZERO, PKCS7)")
         ("decode,d", po::bool_switch(&decode), "Mode déchiffrement")
         ("encode,e", po::bool_switch(&encode), "Mode chiffrement")
-        ("output,o",po::value<std::string>(&outputFilename), "Fichier de sortie");
+        ("output,o", po::value<std::string>(&outputFilename), "Fichier de sortie")
+        ("meta,m", po::value<bool>(&meta)->default_value(true)->implicit_value(false), "Désactiver l'écriture des métadonnées");
 
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
 
+    if(meta) std::cout << "blablaok" << std::endl;
     if(!decode && !encode) {
         throw UtilException("Selectionnez un mode (--encode ou --decode)");
     }
@@ -268,7 +303,6 @@ void Utils::handleInput(int argc, char* argv[]){
         if (vm.count("iv")) {
             std::cout << "IV : " << iv << std::endl;
         }
-    
 
         if( (chainingMethod == ChainingMethod::CBC || chainingMethod == ChainingMethod::CTR || chainingMethod == ChainingMethod::GCM) && !vm.count("iv")) {
             std::cout << "IV non précisé, généré aléatoirement" << std::endl;
@@ -287,14 +321,12 @@ void Utils::handleInput(int argc, char* argv[]){
     }
 
 
-
     if (vm.count("output")) {
         std::cout << "Fichier de sortie : " << outputFilename << std::endl;
     }
     else {
         outputFilename = filename;
     }
-
     File* _file = new File(filename, outputFilename);
     Key* _key = new AES_CPP::Key(key);
     IV* _iv = nullptr;
@@ -304,7 +336,7 @@ void Utils::handleInput(int argc, char* argv[]){
     }
 
     if(decode) _file->decode(_key);
-    if(encode) _file->encode(_key, chainingMethod, _iv, &padding);
+    if(encode) _file->encode(_key, chainingMethod, _iv, &padding, false, meta);
 
 
 }

@@ -27,7 +27,6 @@ TEST(FileTests, AES_TEST_ECB_PKCS7) {
     File f(inputPath, encryptedPath);
     Key* key = new Key("9f3c7e1a54b82d6e0c1f4a9b3d6e7c1f");
     f.encode(key, ChainingMethod::ECB, nullptr, new Padding(Padding::PKcs7));
-
     File f2(encryptedPath, decryptedPath);
     f2.decode(key);
 
@@ -194,9 +193,13 @@ TEST(FileTests, AES_TEST_GCM_PKCS7) {
     Key* key = new Key("9f3c7e1a54b82d6e0c1f4a9b3d6e7c1f");
     IV* iv = new IV("e3a2b4791c8f5d3072e68a5cf174d9b1");
     f.encode(key, ChainingMethod::GCM, iv, new Padding(Padding::PKcs7));
-
+    
     File f2(encryptedPath, decryptedPath);
+    std::cout << "pd c chiant : ";
+
     f2.decode(key);
+    std::cout << "connard c chiant : ";
+
 
     std::string original = readFile(inputPath);
     std::string decrypted = readFile(decryptedPath);

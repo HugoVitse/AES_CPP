@@ -18,7 +18,7 @@ IV::IV(std::string iv) {
         this->iv[i/2] = Utils::hexPairToByte(chars[i], chars[i+1]);
     }
 
-    this->size = iv.size()/2;
+    this->size = this->iv.size();
     
     
 }
@@ -26,11 +26,11 @@ IV::IV(std::string iv) {
 IV::IV(std::vector<uint8_t> iv) {
 
     this->iv = iv;
-    this->size = iv.size()/2;  
+    this->size = iv.size();  
     
 }
 
-std::vector<uint8_t> IV::getIV() {
+std::vector<uint8_t>& IV::getIV() {
     return this->iv;
 }
 
@@ -44,10 +44,14 @@ std::array< std::array< uint8_t, Block::BLOCK_DIMENSION >, Block::BLOCK_DIMENSIO
 
 void IV::splitIV() {
 
-    for( int i =0; i < Block::BLOCK_DIMENSION; i+=1 ){
-        
-        std::copy_n(this->iv.begin() + i * Key::WORD_SIZE, Key::WORD_SIZE, this->words[i].begin());
+    if(this->iv.size() < Block::BLOCK_DIMENSION * Key::WORD_SIZE) {
+        std::cerr << "ERROR in splitIV: IV size is " << this->iv.size() << " but should be at least " << (Block::BLOCK_DIMENSION * Key::WORD_SIZE) << std::endl;
+        std::cerr << "this->size = " << this->size << std::endl;
+        return;
+    }
 
+    for( int i =0; i < Block::BLOCK_DIMENSION; i+=1 ){
+        std::copy_n(this->iv.begin() + i * Key::WORD_SIZE, Key::WORD_SIZE, this->words[i].begin());
     }
 
 }

@@ -30,6 +30,10 @@ class Utils {
         static uint8_t xtime(uint8_t x);
 
 
+        static bool increment_iv_be(IV &iv, bool flag);
+        static void add_to_iv_be(IV &iv, size_t value);
+
+
         static void XOR(std::array<uint8_t, Key::WORD_SIZE>* word, std::array<uint8_t, Key::WORD_SIZE> key);
         static void XOR(Block* block, Block key);
 
