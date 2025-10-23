@@ -2,3 +2,5 @@ build/
 .vscode
 result
 flake.lock
+
+node_modules
