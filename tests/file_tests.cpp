@@ -14,8 +14,10 @@ std::string readFile(const std::string& path) {
     return oss.str();
 }
 
-TEST(FileTests, AES_TEST_ECB_PKCS7) {
 
+TEST(FileTests, AES_TEST_ECB_PKCS7) {
+    
+    Utils::setUseClassicTTables(true);
     std::string inputPath = "tests/tmp/random_input.bin";
     std::string encryptedPath = "tests/tmp/encrypted_output.bin";
     std::string decryptedPath = "tests/tmp/decrypted_output.bin";
@@ -23,7 +25,7 @@ TEST(FileTests, AES_TEST_ECB_PKCS7) {
     std::filesystem::remove(inputPath);
     std::filesystem::remove(encryptedPath);
     std::filesystem::remove(decryptedPath);
-    Utils::generateRandomBinaryFile(inputPath, File::FILE_SIZE_MAX*150 + 100);
+    Utils::generateRandomBinaryFile(inputPath, File::FILE_SIZE_MAX*10 + 100);
     File f(inputPath, encryptedPath);
     Key* key = new Key("9f3c7e1a54b82d6e0c1f4a9b3d6e7c1f");
     f.encode(key, ChainingMethod::ECB, nullptr, new Padding(Padding::PKcs7));
@@ -40,6 +42,7 @@ TEST(FileTests, AES_TEST_ECB_PKCS7) {
 
 TEST(FileTests, AES_TEST_ECB_ZERO) {
 
+    Utils::setUseClassicTTables(true);
     std::string inputPath = "tests/tmp/random_input.bin";
     std::string encryptedPath = "tests/tmp/encrypted_output.bin";
     std::string decryptedPath = "tests/tmp/decrypted_output.bin";
@@ -67,6 +70,7 @@ TEST(FileTests, AES_TEST_ECB_ZERO) {
 
 TEST(FileTests, AES_TEST_CBC_PKCS7) {
 
+    Utils::setUseClassicTTables(true);
     std::string inputPath = "tests/tmp/random_input.bin";
     std::string encryptedPath = "tests/tmp/encrypted_output.bin";
     std::string decryptedPath = "tests/tmp/decrypted_output.bin";
@@ -95,6 +99,7 @@ TEST(FileTests, AES_TEST_CBC_PKCS7) {
 
 TEST(FileTests, AES_TEST_CBC_ZERO) {
 
+    Utils::setUseClassicTTables(true);
     std::string inputPath = "tests/tmp/random_input.bin";
     std::string encryptedPath = "tests/tmp/encrypted_output.bin";
     std::string decryptedPath = "tests/tmp/decrypted_output.bin";
@@ -187,24 +192,30 @@ TEST(FileTests, AES_TEST_GCM_PKCS7) {
     std::filesystem::remove(encryptedPath);
     std::filesystem::remove(decryptedPath);
 
-    Utils::generateRandomBinaryFile(inputPath, File::FILE_SIZE_MAX*150 + 100);
+    Utils::generateRandomBinaryFile(inputPath, 200*1024*1024 + 100);
 
     File f(inputPath, encryptedPath);
     Key* key = new Key("9f3c7e1a54b82d6e0c1f4a9b3d6e7c1f");
     IV* iv = new IV("e3a2b4791c8f5d3072e68a5cf174d9b1");
+
+    // Measure encryption throughput (bytes / second)
+    auto file_size = std::filesystem::file_size(inputPath);
+    auto start = std::chrono::high_resolution_clock::now();
     f.encode(key, ChainingMethod::GCM, iv, new Padding(Padding::PKcs7));
-    
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    double seconds = elapsed.count();
+    double mb = static_cast<double>(file_size) / (1024.0 * 1024.0);
+    double throughput_mb_s = seconds > 0.0 ? (mb / seconds) : 0.0;
+
     File f2(encryptedPath, decryptedPath);
-    std::cout << "pd c chiant : ";
-
     f2.decode(key);
-    std::cout << "connard c chiant : ";
-
 
     std::string original = readFile(inputPath);
     std::string decrypted = readFile(decryptedPath);
     ASSERT_EQ((*f.getTag()), (*f2.getTag()));
     ASSERT_EQ(original, decrypted);
+
     std::filesystem::remove(inputPath);
     std::filesystem::remove(encryptedPath);
     std::filesystem::remove(decryptedPath);
@@ -291,8 +302,6 @@ TEST(FileTests, SpeedTest) {
 
     end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> duration_2 = end - start;
-
-    std::cout << "threading : " << duration.count() << " deprecated : " << duration_2.count() << std::endl;
 
     ASSERT_LE(duration,duration_2);
 

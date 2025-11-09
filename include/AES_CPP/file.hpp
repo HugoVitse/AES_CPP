@@ -38,8 +38,8 @@ class File {
 
     public:
 
-        static const int FILE_SIZE_MAX = 8192;
-        static const int FLOW_SIZE = FILE_SIZE_MAX / Block::BLOCK_SIZE;
+        static const int FILE_SIZE_MAX = 1024*1024;  // 16 KB
+        static const int FLOW_SIZE = FILE_SIZE_MAX / Block::BLOCK_SIZE;  // = 1024 blocs
 
         File(const std::string& filePath, const std::string& outputFilePath);
 

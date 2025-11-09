@@ -16,6 +16,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Optimizations: enable O3 and native architecture optimizations
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -DNDEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
+
 # Pour éviter les erreurs de type "recompile with -fPIC"
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -32,6 +40,7 @@ add_library(aes_lib STATIC ${SOURCES})
 set_target_properties(aes_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_executable(AES_CPP main.cpp)
+
 
 # =======================
 #   BOOST

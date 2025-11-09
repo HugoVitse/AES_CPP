@@ -1,6 +1,15 @@
 {
+  "name": "aes-cpp-audit-tests",
+  "version": "1.0.0",
+  "description": "Unit tests comparing AES_CPP with CryptoJS encryption",
+  "scripts": {
+    "test": "mocha test.spec.js"
+  },
   "dependencies": {
     "crypto-js": "^4.2.0",
     "node-addon-api": "^8.5.0"
+  },
+  "devDependencies": {
+    "mocha": "^10.0.0"
   }
 }

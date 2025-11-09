@@ -57,7 +57,115 @@ const std::array<std::array<uint8_t, 4>,4> Utils::inverseMatrix = {{
     {{11,13,9,14}}
 }};
 
-Utils::Utils() {}
+namespace {
+    // Lookup tables for GF(2^8) multiplications used by MixColumns
+    static uint8_t mul2_table[256];
+    static uint8_t mul3_table[256];
+    static uint8_t mul9_table[256];
+    static uint8_t mul11_table[256];
+    static uint8_t mul13_table[256];
+    static uint8_t mul14_table[256];
+    static bool mul_tables_initialized = false;
+
+    // Generic (slow) multiplication used only at init or fallback
+    static uint8_t gf_mul_generic(uint8_t byte, uint8_t operande) {
+        uint8_t result = 0;
+        while (operande) {
+            if (operande & 1) result ^= byte;
+            byte = (byte & 0x80) ? ((byte << 1) ^ 0x1B) : (byte << 1);
+            operande >>= 1;
+        }
+        return result;
+    }
+
+    static void init_mul_tables() {
+        if (mul_tables_initialized) return;
+        for (int i = 0; i < 256; ++i) {
+            uint8_t b = static_cast<uint8_t>(i);
+            // mul2 and mul3 can be derived directly
+            mul2_table[i] = (b & 0x80) ? static_cast<uint8_t>(((b << 1) ^ 0x1B) & 0xFF) : static_cast<uint8_t>(b << 1);
+            mul3_table[i] = static_cast<uint8_t>(mul2_table[i] ^ b);
+            // others computed with generic routine at init time
+            mul9_table[i]  = gf_mul_generic(b, 9);
+            mul11_table[i] = gf_mul_generic(b, 11);
+            mul13_table[i] = gf_mul_generic(b, 13);
+            mul14_table[i] = gf_mul_generic(b, 14);
+        }
+        mul_tables_initialized = true;
+    }
+
+
+
+    // classic 32-bit ttables 
+    static uint32_t Te0[256];
+    static uint32_t Te1[256];
+    static uint32_t Te2[256];
+    static uint32_t Te3[256];
+    // final round tables 
+    static uint32_t Tf0[256];
+    static uint32_t Tf1[256];
+    static uint32_t Tf2[256];
+    static uint32_t Tf3[256];
+    // inverse ttables
+    static uint32_t Td0[256];
+    static uint32_t Td1[256];
+    static uint32_t Td2[256];
+    static uint32_t Td3[256];
+    // final reverse ttables
+    static uint32_t TdF0[256];
+    static uint32_t TdF1[256];
+    static uint32_t TdF2[256];
+    static uint32_t TdF3[256];
+
+    static bool classic_t_tables_initialized = false;
+    static bool classic_t_tables_enabled = false;
+
+    static void init_classic_t_tables() {
+        if (classic_t_tables_initialized) return;
+        if (!mul_tables_initialized) init_mul_tables();
+
+        //standard t tables
+        for (int x = 0; x < 256; ++x) {
+            uint8_t s = Utils::SBoxSubstitution(static_cast<uint8_t>(x));
+            uint8_t s2 = mul2_table[static_cast<uint8_t>(s)];
+            uint8_t s3 = mul3_table[static_cast<uint8_t>(s)];
+            uint8_t s4 = Utils::SBoxSubstitution(static_cast<uint8_t>(x));
+
+            Te0[x] = (static_cast<uint32_t>(s2) << 24) | (static_cast<uint32_t>(s) << 16) | (static_cast<uint32_t>(s) << 8) | static_cast<uint32_t>(s3);
+            Te1[x] = (static_cast<uint32_t>(s3) << 24) | (static_cast<uint32_t>(s2) << 16) | (static_cast<uint32_t>(s) << 8) | static_cast<uint32_t>(s);
+            Te2[x] = (static_cast<uint32_t>(s) << 24) | (static_cast<uint32_t>(s3) << 16) | (static_cast<uint32_t>(s2) << 8) | static_cast<uint32_t>(s);
+            Te3[x] = (static_cast<uint32_t>(s) << 24) | (static_cast<uint32_t>(s) << 16) | (static_cast<uint32_t>(s3) << 8) | static_cast<uint32_t>(s2);
+            Tf0[x] = (static_cast<uint32_t>(s4) << 24);
+            Tf1[x] = (static_cast<uint32_t>(s4) << 16);
+            Tf2[x] = (static_cast<uint32_t>(s4) << 8);
+            Tf3[x] = (static_cast<uint32_t>(s4));
+        }
+ 
+        // inverse t tables
+        for (int x = 0; x < 256; ++x) {
+            uint8_t y = Utils::inverseSBoxSubstitution(static_cast<uint8_t>(x));
+            uint8_t y9  = mul9_table[static_cast<uint8_t>(y)];
+            uint8_t y11 = mul11_table[static_cast<uint8_t>(y)];
+            uint8_t y13 = mul13_table[static_cast<uint8_t>(y)];
+            uint8_t y14 = mul14_table[static_cast<uint8_t>(y)];
+            Td0[x] = (static_cast<uint32_t>(y14) << 24) | (static_cast<uint32_t>(y11) << 16) | (static_cast<uint32_t>(y13) << 8) | static_cast<uint32_t>(y9);
+            Td1[x] = (static_cast<uint32_t>(y11) << 24) | (static_cast<uint32_t>(y13) << 16) | (static_cast<uint32_t>(y9) << 8) | static_cast<uint32_t>(y14);
+            Td2[x] = (static_cast<uint32_t>(y13) << 24) | (static_cast<uint32_t>(y9)  << 16) | (static_cast<uint32_t>(y14) << 8) | static_cast<uint32_t>(y11);
+            Td3[x] = (static_cast<uint32_t>(y9)  << 24) | (static_cast<uint32_t>(y14) << 16) | (static_cast<uint32_t>(y11) << 8) | static_cast<uint32_t>(y13);
+            TdF0[x] = (static_cast<uint32_t>(y) << 24);
+            TdF1[x] = (static_cast<uint32_t>(y) << 16);
+            TdF2[x] = (static_cast<uint32_t>(y) << 8);
+            TdF3[x] = (static_cast<uint32_t>(y));
+        }
+        classic_t_tables_initialized = true;
+    }
+}
+
+Utils::Utils() {
+
+    if (!mul_tables_initialized) init_mul_tables();
+    if (!classic_t_tables_initialized) init_classic_t_tables();
+}
 
 uint8_t Utils::SBoxSubstitution(uint8_t byte) {
     uint8_t high = byte >> 4;
@@ -105,22 +213,32 @@ uint8_t Utils::xtime(uint8_t x) {
 }
 
 uint8_t Utils::specialMultiplication(uint8_t byte, uint8_t operande) {
-    uint8_t result = 0;
-    while (operande) {
-        if (operande & 1) {
-            result ^= byte; 
-        }
-        byte = (byte & 0x80) ? ((byte << 1) ^ 0x1B) : (byte << 1);
-        operande >>= 1;
+
+    switch (operande) {
+        case 1:  return byte;
+        case 2:  return mul2_table[byte];
+        case 3:  return mul3_table[byte];
+        case 9:  return mul9_table[byte];
+        case 11: return mul11_table[byte];
+        case 13: return mul13_table[byte];
+        case 14: return mul14_table[byte];
+        default: // fallback to generic method for unexpected coefficients
+            return gf_mul_generic(byte, operande);
     }
-    return result;
 }
 
 
 uint8_t Utils::MatrixMultiplication(int row, std::array< uint8_t, Block::BLOCK_DIMENSION> column, bool inverse) {
 
-    uint8_t result = 0;
+    // if (t_tables_enabled) {
+    //     uint8_t result = 0;
+    //     for (int i = 0; i < Block::BLOCK_DIMENSION; ++i) {
+    //         result ^= (inverse ? t_tables_inverse[row][i][column[i]] : t_tables_normal[row][i][column[i]]);
+    //     }
+    //     return result;
+    // }
 
+    uint8_t result = 0;
     for(int i = 0; i < Block::BLOCK_DIMENSION; i+=1) {
         uint8_t tmp = Utils::specialMultiplication(column[i], (inverse ? Utils::inverseMatrix : Utils::matrix)[row][i]);
         result ^= tmp;
@@ -129,6 +247,8 @@ uint8_t Utils::MatrixMultiplication(int row, std::array< uint8_t, Block::BLOCK_D
     return result;
 
 }
+
+
 
 void Utils::blockMultiplication (Block* block, Block operande){
 
@@ -173,8 +293,7 @@ bool Utils::increment_iv_be(IV &iv, bool flag) {
 }
 
 void Utils::add_to_iv_be(IV &iv, size_t value) {
-    // Ajouter 'value' à l'IV traité comme un grand entier big-endian (128 bits)
-    // On commence par le byte le plus à droite (index 15) et on propage la retenue
+
     uint64_t carry = value;
     
     for (int i = 15; i >= 0 && carry > 0; --i) {
@@ -202,6 +321,37 @@ void Utils::showProgressBar(int progress, int total) {
     std::cout.flush();
 }
 
+
+
+void Utils::setUseClassicTTables(bool enable) {
+    if (enable && !classic_t_tables_initialized) init_classic_t_tables();
+    classic_t_tables_enabled = enable;
+}
+
+bool Utils::isClassicTTablesEnabled() {
+    return classic_t_tables_enabled;
+}
+
+uint32_t Utils::classicTWord(uint8_t a0, uint8_t a1, uint8_t a2, uint8_t a3) {
+    if (!classic_t_tables_initialized) init_classic_t_tables();
+    return Te0[a0] ^ Te1[a1] ^ Te2[a2] ^ Te3[a3];
+}
+
+uint32_t Utils::classicFinalWord(uint8_t a0, uint8_t a1, uint8_t a2, uint8_t a3) {
+    if (!classic_t_tables_initialized) init_classic_t_tables();
+    return Tf0[a0] ^ Tf1[a1] ^ Tf2[a2] ^ Tf3[a3];
+}
+
+uint32_t Utils::classicDWord(uint8_t a0, uint8_t a1, uint8_t a2, uint8_t a3) {
+    if (!classic_t_tables_initialized) init_classic_t_tables();
+    return Td0[a0] ^ Td1[a1] ^ Td2[a2] ^ Td3[a3];
+}
+
+uint32_t Utils::classicFinalDecWord(uint8_t a0, uint8_t a1, uint8_t a2, uint8_t a3) {
+    if (!classic_t_tables_initialized) init_classic_t_tables();
+    return TdF0[a0] ^ TdF1[a1] ^ TdF2[a2] ^ TdF3[a3];
+}
+
 ChainingMethod Utils::parseChaining(const std::string& str) {
     if (str == "ECB") return ChainingMethod::ECB;
     if (str == "CBC") return ChainingMethod::CBC;
@@ -210,7 +360,7 @@ ChainingMethod Utils::parseChaining(const std::string& str) {
     throw po::validation_error(po::validation_error::invalid_option_value, "chaining method", str);
 }
 
-Padding parsePadding(const std::string& str) {
+Padding Utils::parsePadding(const std::string& str) {
     if (str == "ZERO") return Padding::ZeroPadding;
     if (str == "PKCS7") return Padding::PKcs7;
     throw po::validation_error(po::validation_error::invalid_option_value, "padding", str);
@@ -219,13 +369,13 @@ Padding parsePadding(const std::string& str) {
 void validate(boost::any& v, const std::vector<std::string>& values, AES_CPP::ChainingMethod*, int) {
     po::validators::check_first_occurrence(v);
     const std::string& s = po::validators::get_single_string(values);
-    v = Utils::parseChaining(s);
+    v = AES_CPP::Utils::parseChaining(s);
 }
 
 void validate(boost::any& v, const std::vector<std::string>& values, AES_CPP::Padding*, int) {
     po::validators::check_first_occurrence(v);
     const std::string& s = po::validators::get_single_string(values);
-    v = AES_CPP::parsePadding(s);
+    v = AES_CPP::Utils::parsePadding(s);
 }
 
 
@@ -264,7 +414,6 @@ void Utils::handleInput(int argc, char* argv[]){
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
 
-    if(meta) std::cout << "blablaok" << std::endl;
     if(!decode && !encode) {
         throw UtilException("Selectionnez un mode (--encode ou --decode)");
     }

@@ -42,6 +42,14 @@ class Utils {
         static uint8_t specialMultiplication(uint8_t byte, uint8_t operande);
         static uint8_t MatrixMultiplication(int row, std::array< uint8_t, Block::BLOCK_DIMENSION> column, bool inverse=false);
         static void blockMultiplication (Block* block, Block operande);
+        
+       
+        static void setUseClassicTTables(bool enable);
+        static bool isClassicTTablesEnabled();
+        static uint32_t classicTWord(uint8_t a0, uint8_t a1, uint8_t a2, uint8_t a3);
+        static uint32_t classicFinalWord(uint8_t a0, uint8_t a1, uint8_t a2, uint8_t a3);
+        static uint32_t classicDWord(uint8_t a0, uint8_t a1, uint8_t a2, uint8_t a3);
+        static uint32_t classicFinalDecWord(uint8_t a0, uint8_t a1, uint8_t a2, uint8_t a3);
 
 
         static void ZeroPadding(std::array<uint8_t, Block::BLOCK_SIZE>* flatBlock, int bytesLeft);
@@ -50,8 +58,6 @@ class Utils {
 
         static ChainingMethod parseChaining(const std::string& str);
         static Padding parsePadding(const std::string& str);
-        static void validate(boost::any& v, const std::vector<std::string>& values, AES_CPP::Padding*, int);
-        static void validate(boost::any& v, const std::vector<std::string>& values, AES_CPP::ChainingMethod*, int);
         static void handleInput(int argc, char* argv[]);
 
         static void showProgressBar(int progress, int total);
@@ -64,5 +70,8 @@ class Utils {
 
 
 };
+
+void validate(boost::any& v, const std::vector<std::string>& values, AES_CPP::Padding*, int);
+void validate(boost::any& v, const std::vector<std::string>& values, AES_CPP::ChainingMethod*, int);
 
 }

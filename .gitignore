@@ -4,3 +4,4 @@ result
 flake.lock
 
 node_modules
+flamegraph.svg

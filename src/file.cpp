@@ -1,6 +1,7 @@
 #include "AES_CPP/file.hpp"
 #include "AES_CPP/fileException.hpp"
 #include <math.h>
+#include <algorithm>  // Pour std::copy
 
 namespace AES_CPP {
 
@@ -54,8 +55,8 @@ void File::splitFile(Padding* padding) {
     int nb_blocks = ( this->fileSize / Block::BLOCK_SIZE ) + 
                     ((this->fileSize % Block::BLOCK_SIZE == 0 && *padding != Padding::PKcs7)  ?  0 : 1);
 
-    this->nbFlows = ( this->fileSize  /  File::FILE_SIZE_MAX ) + 
-                    ((this->fileSize  %  File::FILE_SIZE_MAX == 0 ) ? 0 : 1);
+    this->nbFlows = ( nb_blocks  /  File::FLOW_SIZE ) + 
+                    (( nb_blocks  %  File::FLOW_SIZE == 0 ) ? 0 : 1);
 
     this->partialBlock = ! ( this->fileSize % Block::BLOCK_SIZE == 0 );
 
@@ -67,31 +68,50 @@ void File::splitFile(Padding* padding) {
 
 void File::fillBlocks(Key* key, int flow){
     
-    
-    std::ifstream file(this->getFilePath());
+    std::ifstream file(this->getFilePath(), std::ios::binary);
     if( !file.is_open() ) {
         throw FileException("Impossible d'ouvrir le fichier.");
     }
 
+    // Calculer la taille à lire pour ce flow
+    size_t flowOffset = flow * File::FILE_SIZE_MAX;
+    size_t blocksToRead = this->blocks.size() - (flow == (this->nbFlows-1) ? 1 : 0);
+    size_t bytesToRead = blocksToRead * Block::BLOCK_SIZE;
+    
+    // Allouer un buffer pour lire tout le chunk en une seule fois
+    std::vector<uint8_t> chunkBuffer(bytesToRead);
+    
+    // Lecture unique du chunk complet (OPTIMISATION MAJEURE)
+    file.seekg(flowOffset);
+    file.read(reinterpret_cast<char*>(chunkBuffer.data()), bytesToRead);
+    
+    if (!file && !file.eof()) {
+        throw FileException("Erreur lors de la lecture du fichier.");
+    }
+    
+    file.close();
+    
+    // Maintenant, découper le buffer en blocs (opération en mémoire, très rapide)
     std::array<uint8_t, Block::BLOCK_SIZE> flatBlock;
-
-    for(int i = 0; i < this->blocks.size() -  (flow == (this->nbFlows-1) ? 1 : 0); i+=1) {
-        file.seekg(flow*File::FILE_SIZE_MAX + i*Block::BLOCK_SIZE);
-        file.read(reinterpret_cast<char*>(flatBlock.data()), Block::BLOCK_SIZE);
-
-         
+    
+    for(size_t i = 0; i < blocksToRead; i++) {
+        // Copier 16 octets du buffer vers flatBlock
+        std::copy(
+            chunkBuffer.begin() + (i * Block::BLOCK_SIZE),
+            chunkBuffer.begin() + ((i + 1) * Block::BLOCK_SIZE),
+            flatBlock.begin()
+        );
+        
+        // Transformer en matrice 2D
         std::array<std::array<uint8_t, Block::BLOCK_DIMENSION>, Block::BLOCK_DIMENSION> block;
-
         for (int col = 0; col < Block::BLOCK_DIMENSION; ++col) {
             for (int row = 0; row < Block::BLOCK_DIMENSION; ++row) {
                 block[col][row] = flatBlock[col * Block::BLOCK_DIMENSION + row];
             }
         }
-        this->blocks[i] =  Block(block, key);
+        
+        this->blocks[i] = Block(block, key);
     }
-
-    
-    
 }
 
 void File::fillLastBlock(Key* key, int flow, Padding* padding){
@@ -314,21 +334,18 @@ void File::encodeBlocksCTR(IV iv, Key* key, int flow, bool GCM) {
 
     for (size_t t = 0; t < num_threads; ++t) {
         threads.emplace_back([&, t]() {
+            IV baseIV = iv;
+            baseIV.splitIV();
+
             for (size_t i = t; i < total_blocks; i += num_threads) {
-                
-                std::vector<uint8_t> ivCopy = iv.getIV();  // Copie explicite du vecteur
-                IV localIV(ivCopy);
-                localIV.splitIV();
-                
-                // Ajouter directement l'offset à l'IV (beaucoup plus rapide qu'une boucle)
-                size_t increment = flow*File::FLOW_SIZE +  i + (GCM ? 1 : 0);
+                size_t increment = flow * File::FLOW_SIZE + i + (GCM ? 1 : 0);
+
+                IV localIV = baseIV;
                 Utils::add_to_iv_be(localIV, increment);
 
-                Block* counterBlock = new Block(localIV.getWords(), key);
-                File::encodeBloc(counterBlock);
-                Utils::XOR(&(*blocks)[i], *counterBlock);
-                
-                delete counterBlock;
+                Block counterBlock(localIV.getWords(), key);
+                File::encodeBloc(&counterBlock);
+                Utils::XOR(&(*blocks)[i], counterBlock);
             }
         });
     }
@@ -420,39 +437,35 @@ void File::decodeBlocksCBC(IV iv) {
 void File::writeBlocks(int flow, int fin){
     std::fstream file(this->getOutputFilePath(), std::ios::in | std::ios::out | std::ios::binary);
 
-
     if (!file.is_open()) {
         file.open(this->getOutputFilePath(), std::ios::out | std::ios::binary);
         file.close();
         file.open(this->getOutputFilePath(), std::ios::in | std::ios::out | std::ios::binary);
     }
 
+    size_t totalBytes = (this->blocks.size() - 1) * Block::BLOCK_SIZE + fin;
     
+    std::vector<uint8_t> chunkBuffer;
+    chunkBuffer.reserve(totalBytes);
+    
+    for(size_t k = 0; k < this->blocks.size(); k++) {
+        Block block = (*this->getBlocks())[k];
+        int bytesToWrite = (k == this->blocks.size() - 1) ? fin : Block::BLOCK_SIZE;
+        
+        for(int i = 0; i < bytesToWrite; i++) {
+            chunkBuffer.push_back(
+                (*block.getBlock())[i / Block::BLOCK_DIMENSION][i % Block::BLOCK_DIMENSION]
+            );
+        }
+    }
     
     file.seekp(flow * File::FILE_SIZE_MAX);
+    file.write(reinterpret_cast<const char*>(chunkBuffer.data()), chunkBuffer.size());
     
-    
-    int end = Block::BLOCK_SIZE;
-    
-    for(int k = 0; k < this->blocks.size(); k+=1) {
-        
-        if(k == this->blocks.size() - 1 ) {
-            end = fin;
-        }
-        
-
-        Block block = (*this->getBlocks())[k];
-        
-        
-        
-        for(int i = 0; i < end ; i+=1){
-            file.put(static_cast<char>(  (*block.getBlock())[i/Block::BLOCK_DIMENSION][i%Block::BLOCK_DIMENSION]  ));
-
-        }
-        
-        
+    if (!file) {
+        throw FileException("Erreur lors de l'écriture du fichier.");
     }
-
+    
     file.close();
 }
 
@@ -603,6 +616,8 @@ Data File::readData() {
 void File::encode(Key* key, ChainingMethod Method,  IV* iv, Padding* padding, bool deprecated, bool metaData) {
 
 
+    Utils::setUseClassicTTables(true);
+
     int bytesLeft = this->getFileSize()%Block::BLOCK_SIZE;
     key->splitKey();
 	key->KeyExpansion();
@@ -615,18 +630,22 @@ void File::encode(Key* key, ChainingMethod Method,  IV* iv, Padding* padding, bo
 
     this->tag = new Block(AAD, key);
     IV* localIV = iv;
-    
-
-
 
     for(int i = 0; i < this->nbFlows; i+=1){
 
         Utils::showProgressBar(i, this->nbFlows-1);
 
         if(i == this->nbFlows - 1) {
-            this->blocks.resize(this->sizeLastFlow);
-            this->fillBlocks(key, i);
-            this->fillLastBlock(key,i, padding);
+            // Si sizeLastFlow == 0, cela signifie que le dernier flow est complet
+            if(this->sizeLastFlow == 0) {
+                // Traiter comme un flow complet
+                this->fillBlocks(key, i);
+            } else {
+                // Traiter comme un flow partiel
+                this->blocks.resize(this->sizeLastFlow);
+                this->fillBlocks(key, i);
+                this->fillLastBlock(key,i, padding);
+            }
         }
         else {
             this->fillBlocks(key, i);
@@ -659,9 +678,7 @@ void File::encode(Key* key, ChainingMethod Method,  IV* iv, Padding* padding, bo
         
     }
     if(Method == ChainingMethod::GCM){
-        std::cout << std::endl << "Tag : ";
-        this->tag->toString();
-        this->writeData(bytesLeft,Method,iv,tag);
+        if(metaData) this->writeData(bytesLeft,Method,iv,tag);
     } 
     else {
         if(metaData) this->writeData(bytesLeft,Method,iv, nullptr);
@@ -709,7 +726,6 @@ void File::calculateTagWrapper(Key* key, ChainingMethod Method,  IV* iv) {
         
     }
     if(Method == ChainingMethod::GCM){
-        std::cout << std::endl << "Tag : ";
         this->tag->toString();
     } 
     
@@ -719,6 +735,7 @@ void File::calculateTagWrapper(Key* key, ChainingMethod Method,  IV* iv) {
 void File::decode(Key* key, bool deprecated) {
 
     
+    Utils::setUseClassicTTables(true);  // Activer les T-tables
 
     
     key->splitKey();
@@ -764,9 +781,17 @@ void File::decode(Key* key, bool deprecated) {
 
 
         if(i == this->nbFlows - 1) {
-            this->blocks.resize(this->sizeLastFlow);
-            this->fillBlocks(key, i);
-            this->fillLastBlock(key,i, new Padding(Padding::None));
+            // Si sizeLastFlow == 0, cela signifie que le dernier flow est complet
+            if(this->sizeLastFlow == 0) {
+                // Traiter comme un flow complet
+                this->blocks.resize(File::FILE_SIZE_MAX / Block::BLOCK_SIZE);
+                this->fillBlocks(key, i);
+            } else {
+                // Traiter comme un flow partiel
+                this->blocks.resize(this->sizeLastFlow);
+                this->fillBlocks(key, i);
+                this->fillLastBlock(key,i, new Padding(Padding::None));
+            }
         }
         else {
             this->blocks.resize( this->nbFlows == 1 ? this->nbblocks : File::FILE_SIZE_MAX / Block::BLOCK_SIZE) ;
@@ -796,18 +821,12 @@ void File::decode(Key* key, bool deprecated) {
         if(i == this->nbFlows - 1) {
             int dePad = this->dePad();
             this->writeBlocks(i, dePad );
-            std::filesystem::resize_file(this->getOutputFilePath(), ( this->getFileSize() - (Block::BLOCK_SIZE - dePad))  );
-
         }
         else this->writeBlocks(i);
 
     }
 
     if(Method == ChainingMethod::GCM){
-        std::cout << std::endl << "Tag : ";
-        this->tag->toString();
-
-        data.getTag()->toString();
         if( *this->tag != *data.getTag()) {
             throw FileException("Tag incorrect ! L'intégrité des données a peut être été altérée");
         }

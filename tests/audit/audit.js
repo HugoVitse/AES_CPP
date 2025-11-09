@@ -19,7 +19,7 @@ function generateRandomFile(path, sizeBytes) {
 
 // si le fichier d'entrée n'existe pas, on le crée avec 1 Mo d'aléatoire (modifiable via argv[4])
 if (!fs.existsSync(inputPath)) {
-    var size = 1020 * 36;
+    var size = 1020 * 1024;
     generateRandomFile(inputPath, size);
 }
 else {
@@ -43,7 +43,7 @@ var wordArray = bufferToWordArray(inputBuf);
 // chiffrer le contenu du fichier
 var encrypted = CryptoJS.AES.encrypt(wordArray, key, {
     iv: iv,
-    mode: CryptoJS.mode.CBC,
+    mode: CryptoJS.mode.CTR,
     padding: CryptoJS.pad.Pkcs7
 });
 
@@ -64,5 +64,5 @@ var ciphertextWA = encrypted.ciphertext;
 var ciphertextBuf = wordArrayToBuffer(ciphertextWA);
 fs.writeFileSync(outputPath, ciphertextBuf);
 
-exec("../../build/AES_CPP --encode --file='./test2.bin' --output='./test2_.bin.enc' --iv '60d271cf6d949194e2ab66347b286ddf' --key '19af00f22368200dd52e17b21f02f782' --meta")
+exec("../../build/AES_CPP --encode --chaining=CTR --file='./test2.bin' --output='./test2_.bin.enc' --iv '60d271cf6d949194e2ab66347b286ddf' --key '19af00f22368200dd52e17b21f02f782' --meta")
 //console.log(encrypted.toString()); // résultat en base64

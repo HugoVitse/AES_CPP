@@ -101,6 +101,7 @@ TEST(BlockTest, ShiftRows) {
 }
 
 TEST(BlockTest, MixColumnsTest) {
+    Utils::setUseClassicTTables(true);
 
     Key key("9f3c7e1a54b82d6e0c1f4a9b3d6e7c1f");
     std::array< std::array<uint8_t,4>,4> test = {{
@@ -135,6 +136,8 @@ TEST(BlockTest, MixColumnsTest) {
 
 TEST(BlockTest, Round1Test) {
 
+    Utils::setUseClassicTTables(true);
+
     Key key("9f3c7e1a54b82d6e0c1f4a9b3d6e7c1f");
     std::array< std::array<uint8_t,4>,4> test = {{
         {{0x00, 0x00, 0x01, 0x01}}, 
@@ -166,6 +169,8 @@ TEST(BlockTest, Round1Test) {
 
 TEST(BlockTest, FinalRoundTest) {
 
+    Utils::setUseClassicTTables(true);
+
     Key key("9f3c7e1a54b82d6e0c1f4a9b3d6e7c1f");
     std::array< std::array<uint8_t,4>,4> test = {{
         {{0x61, 0xe1, 0x55, 0x3d}}, 
@@ -196,6 +201,8 @@ TEST(BlockTest, FinalRoundTest) {
 
 TEST(BlockTest, EncondingTest) {
 
+    Utils::setUseClassicTTables(true);
+
     Key key("9f3c7e1a54b82d6e0c1f4a9b3d6e7c1f");
     std::array< std::array<uint8_t,4>,4> test = {{
         {{0x00, 0x00, 0x01, 0x01}}, 
@@ -224,6 +231,8 @@ TEST(BlockTest, EncondingTest) {
 
 }
 TEST(BlockTest, EncondingTest2) {
+
+    Utils::setUseClassicTTables(true);
 
     Key key("9f3c7e1a54b82d6e0c1f4a9b3d6e7c1f");
     std::array< std::array<uint8_t,4>,4> test = {{

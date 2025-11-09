@@ -2,6 +2,7 @@
 #include "AES_CPP/keyException.hpp"
 #include "AES_CPP/file.hpp"
 #include "AES_CPP/utils.hpp"
+#include <iomanip>
 
 namespace AES_CPP {
    
@@ -116,6 +117,8 @@ void Key::KeyExpansion() {
         }
 
     }
+
+    (void)nbWords; // no diagnostic output in production code
 
 }
 

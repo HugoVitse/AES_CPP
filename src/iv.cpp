@@ -45,8 +45,6 @@ std::array< std::array< uint8_t, Block::BLOCK_DIMENSION >, Block::BLOCK_DIMENSIO
 void IV::splitIV() {
 
     if(this->iv.size() < Block::BLOCK_DIMENSION * Key::WORD_SIZE) {
-        std::cerr << "ERROR in splitIV: IV size is " << this->iv.size() << " but should be at least " << (Block::BLOCK_DIMENSION * Key::WORD_SIZE) << std::endl;
-        std::cerr << "this->size = " << this->size << std::endl;
         return;
     }
 
@@ -57,15 +55,7 @@ void IV::splitIV() {
 }
 
 void IV::toString() {
-    for(auto col : this->getWords()){
-        for(auto row : col) {
-            std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)row;
-        }
-    }
-
-    std::cout << std::endl;
-
-
+    // Silent - no output
 }
 
 }
